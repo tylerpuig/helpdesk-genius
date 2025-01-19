@@ -9,6 +9,8 @@ import {
 } from '~/components/ui/breadcrumb'
 import { Separator } from '~/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
+import { Mail } from '~/app/_components/mail/mail'
+import { mails, accounts, contacts } from '~/app/_components/mail/data'
 
 export default function Page() {
   return (
@@ -33,12 +35,18 @@ export default function Page() {
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+          {/* <div className="grid auto-rows-min gap-4 md:grid-cols-3">
             <div className="aspect-video rounded-xl bg-muted/50" />
             <div className="aspect-video rounded-xl bg-muted/50" />
             <div className="aspect-video rounded-xl bg-muted/50" />
-          </div>
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
+          </div> */}
+          {/* <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" /> */}
+          <Mail
+            accounts={accounts}
+            mails={mails}
+            defaultLayout={[20, 32, 48]}
+            navCollapsedSize={48}
+          />
         </div>
       </SidebarInset>
     </SidebarProvider>
