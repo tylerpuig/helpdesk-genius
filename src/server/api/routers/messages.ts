@@ -37,8 +37,6 @@ export const messagesRouter = createTRPCRouter({
       .where(eq(schema.threadsTable.status, 'open'))
       .orderBy(desc(schema.threadsTable.lastMessageAt))
 
-    console.log(threads)
-
     return threads
   }),
   getMessagesFromThread: publicProcedure

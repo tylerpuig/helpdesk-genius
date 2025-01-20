@@ -25,16 +25,8 @@ import { AccountSwitcher } from '~/app/_components/mail/account-switcher'
 import { EmailMessagesDisplay } from '~/app/_components/mail/messages-display'
 import { MailList } from '~/app/_components/mail/thread-list'
 import { Nav } from '~/app/_components/mail/nav'
-import { type Mail } from '~/app/_components/mail/data'
-import { useMail } from '~/app/_components/mail/use-mail'
 
-interface MailProps {
-  // accounts: {
-  //   label: string
-  //   email: string
-  //   icon: React.ReactNode
-  // }[]
-  // mails: Mail[]
+type MailProps = {
   defaultLayout: number[] | undefined
   defaultCollapsed?: boolean
   navCollapsedSize: number

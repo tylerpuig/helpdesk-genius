@@ -24,15 +24,14 @@ import { Separator } from '~/components/ui/separator'
 import { Switch } from '~/components/ui/switch'
 import { Textarea } from '~/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
-// import { Mail } from '~/app/_components/mail/data'
 import { useMessages } from '~/hooks/context/useMessages'
 
 export function EmailMessagesDisplay() {
   const today = new Date()
   const { selectedMessageId, setSelectedMessageId, messages, selectedThreadId } = useMessages()
 
-  const selectedMessage = messages.find((item) => item.id === selectedMessageId)
-  console.log(selectedMessage, messages)
+  const lastMessage = messages ? messages.at(-1) : null
+  // console.log(lastMessage, messages)
 
   return (
     <div className="flex h-full flex-col">
@@ -146,7 +145,7 @@ export function EmailMessagesDisplay() {
         <Separator orientation="vertical" className="mx-2 h-6" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" disabled={!selectedMessage}>
+            <Button variant="ghost" size="icon" disabled={!lastMessage}>
               <MoreVertical className="h-4 w-4" />
               <span className="sr-only">More</span>
             </Button>
@@ -160,40 +159,40 @@ export function EmailMessagesDisplay() {
         </DropdownMenu>
       </div>
       <Separator />
-      {selectedThreadId ? (
+      {selectedThreadId && lastMessage ? (
         <div className="flex flex-1 flex-col">
           <div className="flex items-start p-4">
             <div className="flex items-start gap-4 text-sm">
-              {/* <Avatar>
-                <AvatarImage alt={} />
+              <Avatar>
+                <AvatarImage alt={lastMessage.senderName ?? ''} />
                 <AvatarFallback>
-                  {mail.name
+                  {(lastMessage.senderName ?? '')
                     .split(' ')
                     .map((chunk) => chunk[0])
                     .join('')}
                 </AvatarFallback>
-              </Avatar> */}
+              </Avatar>
               <div className="grid gap-1">
-                <div className="font-semibold">{selectedMessage?.senderName}</div>
-                <div className="line-clamp-1 text-xs">{selectedMessage?.senderEmail}</div>
+                <div className="font-semibold">{lastMessage?.senderName}</div>
+                <div className="line-clamp-1 text-xs">{lastMessage?.senderEmail}</div>
                 <div className="line-clamp-1 text-xs">
-                  <span className="font-medium">Reply-To:</span> {selectedMessage?.senderEmail}
+                  <span className="font-medium">Reply-To:</span> {lastMessage?.senderEmail}
                 </div>
               </div>
             </div>
-            {selectedMessage?.createdAt && (
+            {lastMessage?.createdAt && (
               <div className="ml-auto text-xs text-muted-foreground">
-                {format(selectedMessage?.createdAt, 'PPpp')}
+                {format(lastMessage?.createdAt, 'PPpp')}
               </div>
             )}
           </div>
           <Separator />
-          <div className="flex-1 whitespace-pre-wrap p-4 text-sm">{selectedMessage?.content}</div>
+          <div className="flex-1 whitespace-pre-wrap p-4 text-sm">{lastMessage?.content}</div>
           <Separator className="mt-auto" />
           <div className="p-4">
             <form>
               <div className="grid gap-4">
-                <Textarea className="p-4" placeholder={`Reply ${selectedMessage?.senderName}...`} />
+                <Textarea className="p-4" placeholder={`Reply ${lastMessage?.senderName}...`} />
                 <div className="flex items-center">
                   <Label htmlFor="mute" className="flex items-center gap-2 text-xs font-normal">
                     <Switch id="mute" aria-label="Mute thread" /> Mute this thread

@@ -1,4 +1,4 @@
-'use client'
+// 'use client'
 import { AppSidebar } from '~/app/_components/dashboard/app-sidebar'
 import {
   Breadcrumb,
@@ -11,10 +11,17 @@ import {
 import { Separator } from '~/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { Mail } from '~/app/_components/mail/mail'
-import { mails, accounts, contacts } from '~/app/_components/mail/data'
-import { api } from '~/trpc/react'
+import { useSession } from 'next-auth/react'
+import { redirect } from 'next/navigation'
+import { auth } from '~/server/auth'
 
-export default function Page() {
+export default async function Page() {
+  const session = await auth()
+
+  if (!session?.user) {
+    redirect('/auth/login')
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />

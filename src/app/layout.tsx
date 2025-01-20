@@ -2,7 +2,6 @@ import '~/styles/globals.css'
 
 import { GeistSans } from 'geist/font/sans'
 import { type Metadata } from 'next'
-import { TRPCReactProvider } from '~/trpc/react'
 import { Providers } from '~/app/_components/providers'
 
 export const metadata: Metadata = {
