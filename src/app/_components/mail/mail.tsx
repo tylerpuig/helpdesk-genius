@@ -57,9 +57,9 @@ export function Mail({
         onLayout={(sizes: number[]) => {
           document.cookie = `react-resizable-panels:layout:mail=${JSON.stringify(sizes)}`
         }}
-        className="h-full max-h-[800px] items-stretch"
+        className="h-full max-h-screen items-stretch"
       >
-        <ResizablePanel
+        {/* <ResizablePanel
           defaultSize={defaultLayout[0]}
           collapsedSize={navCollapsedSize}
           collapsible={true}
@@ -161,8 +161,8 @@ export function Mail({
               }
             ]}
           />
-        </ResizablePanel>
-        <ResizableHandle withHandle />
+        </ResizablePanel> */}
+        {/* <ResizableHandle withHandle /> */}
         <ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>
           <Tabs defaultValue="all">
             <div className="flex items-center px-4 py-2">
