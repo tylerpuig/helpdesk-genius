@@ -11,7 +11,8 @@ import {
   Map,
   PieChart,
   Settings2,
-  SquareTerminal
+  SquareTerminal,
+  Mail
 } from 'lucide-react'
 
 import { NavMain } from '~/app/_components/dashboard/nav-main'
@@ -52,43 +53,29 @@ const data = {
   ],
   navMain: [
     {
-      title: 'Playground',
-      url: '#',
+      title: 'Dashboard',
+      url: '/dashboard',
       icon: SquareTerminal,
-      isActive: true,
-      items: [
-        {
-          title: 'History',
-          url: '#'
-        },
-        {
-          title: 'Starred',
-          url: '#'
-        },
-        {
-          title: 'Settings',
-          url: '#'
-        }
-      ]
+      isActive: true
     },
     {
-      title: 'Models',
-      url: '#',
-      icon: Bot,
-      items: [
-        {
-          title: 'Genesis',
-          url: '#'
-        },
-        {
-          title: 'Explorer',
-          url: '#'
-        },
-        {
-          title: 'Quantum',
-          url: '#'
-        }
-      ]
+      title: 'Tickets',
+      url: '/dashboard/tickets',
+      icon: Mail
+      // items: [
+      //   {
+      //     title: 'Genesis',
+      //     url: '#'
+      //   },
+      //   {
+      //     title: 'Explorer',
+      //     url: '#'
+      //   },
+      //   {
+      //     title: 'Quantum',
+      //     url: '#'
+      //   }
+      // ]
     },
     {
       title: 'Documentation',
