@@ -1,3 +1,4 @@
+'use client'
 import { AppSidebar } from '~/app/_components/dashboard/app-sidebar'
 import {
   Breadcrumb,
@@ -11,6 +12,7 @@ import { Separator } from '~/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { Mail } from '~/app/_components/mail/mail'
 import { mails, accounts, contacts } from '~/app/_components/mail/data'
+import { api } from '~/trpc/react'
 
 export default function Page() {
   return (
@@ -41,12 +43,7 @@ export default function Page() {
             <div className="aspect-video rounded-xl bg-muted/50" />
           </div> */}
           {/* <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" /> */}
-          <Mail
-            accounts={accounts}
-            mails={mails}
-            defaultLayout={[20, 32, 48]}
-            navCollapsedSize={48}
-          />
+          <Mail defaultLayout={[20, 32, 48]} navCollapsedSize={48} />
         </div>
       </SidebarInset>
     </SidebarProvider>
