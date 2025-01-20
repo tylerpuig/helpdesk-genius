@@ -2,30 +2,15 @@ import { relations, sql } from 'drizzle-orm'
 import {
   index,
   integer,
-  pgTableCreator,
   primaryKey,
   text,
   timestamp,
   varchar,
-  pgTable
+  pgTable,
+  boolean
 } from 'drizzle-orm/pg-core'
 import { type AdapterAccount } from 'next-auth/adapters'
-
-export const posts = pgTable(
-  'post',
-  {
-    id: integer('id').primaryKey().generatedByDefaultAsIdentity(),
-    name: varchar('name', { length: 256 }),
-    createdById: varchar('created_by', { length: 255 })
-      .notNull()
-      .references(() => users.id),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date())
-  },
-  (example) => [index('created_by_idx').on(example.createdById), index('name_idx').on(example.name)]
-)
+import * as DBTypes from '~/server/db/types'
 
 export const users = pgTable('user', {
   id: varchar('id', { length: 255 })
@@ -40,10 +25,6 @@ export const users = pgTable('user', {
   }).default(sql`CURRENT_TIMESTAMP`),
   image: varchar('image', { length: 255 })
 })
-
-export const usersRelations = relations(users, ({ many }) => ({
-  accounts: many(accounts)
-}))
 
 export const accounts = pgTable(
   'account',
@@ -107,3 +88,126 @@ export const verificationTokens = pgTable(
   },
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })]
 )
+
+export const contacts = pgTable(
+  'contact',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    email: varchar('email', { length: 255 }).notNull().unique(),
+    name: varchar('name', { length: 255 }),
+    // Optional fields that might be useful
+    company: varchar('company', { length: 255 }),
+    lastContactedAt: timestamp('last_contacted_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (contact) => [index('contact_email_idx').on(contact.email)]
+)
+
+export const threadsTable = pgTable(
+  'thread',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    status: varchar('status', { length: 50 })
+      .notNull()
+      .default('open')
+      .$type<DBTypes.ThreadStatus>(),
+    priority: varchar('priority', { length: 50 })
+      .notNull()
+      .default('low')
+      .$type<DBTypes.ThreadPriority>(),
+    title: varchar('title', { length: 256 }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date()),
+    lastMessageAt: timestamp('last_message_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (thread) => [
+    index('thread_status_idx').on(thread.status),
+    index('thread_last_message_idx').on(thread.lastMessageAt)
+  ]
+)
+
+export const threadAssignmentsTable = pgTable(
+  'thread_assignment',
+  {
+    threadId: varchar('thread_id', { length: 255 })
+      .notNull()
+      .references(() => threadsTable.id),
+    userId: varchar('user_id', { length: 255 })
+      .notNull()
+      .references(() => users.id),
+    assignedAt: timestamp('assigned_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (assignment) => [
+    // Make the combination of threadId and userId unique
+    primaryKey({ columns: [assignment.threadId, assignment.userId] }),
+    index('thread_assignment_thread_idx').on(assignment.threadId),
+    index('thread_assignment_user_idx').on(assignment.userId)
+  ]
+)
+
+export const messagesTable = pgTable(
+  'message',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    threadId: varchar('thread_id', { length: 255 })
+      .notNull()
+      .references(() => threadsTable.id),
+    channel: varchar('channel', { length: 50 }).notNull().$type<DBTypes.MessageChannel>(), // 'email', 'chat', etc.
+    content: text('content').notNull(),
+    senderEmail: varchar('sender_email', { length: 255 }).notNull(),
+    senderName: varchar('sender_name', { length: 255 }),
+    role: varchar('role', { length: 50 }).notNull().$type<DBTypes.MessageRole>(), // 'customer', 'agent'
+    isUnread: boolean('is_unread').default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (message) => [
+    index('message_thread_id_idx').on(message.threadId),
+    index('message_created_at_idx').on(message.createdAt)
+  ]
+)
+
+export const usersRelations = relations(users, ({ many }) => ({
+  accounts: many(accounts)
+}))
+
+export const threadsRelations = relations(threadsTable, ({ many, one }) => ({
+  messages: many(messagesTable),
+  assignments: many(threadAssignmentsTable)
+}))
+
+export const threadAssignmentsRelations = relations(threadAssignmentsTable, ({ one }) => ({
+  thread: one(threadsTable, {
+    fields: [threadAssignmentsTable.threadId],
+    references: [threadsTable.id]
+  }),
+  user: one(users, { fields: [threadAssignmentsTable.userId], references: [users.id] })
+}))
+
+export const messagesRelations = relations(messagesTable, ({ one }) => ({
+  thread: one(threadsTable, { fields: [messagesTable.threadId], references: [threadsTable.id] })
+}))
+
+export const contactsRelations = relations(contacts, ({ many }) => ({
+  messages: many(messagesTable)
+}))
