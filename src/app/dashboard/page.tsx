@@ -1,58 +1,39 @@
 // 'use client'
-import { AppSidebar } from '~/app/_components/dashboard/app-sidebar'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from '~/components/ui/breadcrumb'
-import { Separator } from '~/components/ui/separator'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
-import { Mail } from '~/app/_components/mail/mail'
-import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
-import { auth } from '~/server/auth'
+import { StatCard } from '~/app/_components/dashboard/analytics/ticket-stat-card'
+import { TicketLineChart } from '~/app/_components/dashboard/analytics/tickets-line-chart'
+import { TicketPieChart } from '~/app/_components/dashboard/analytics/ticket-pie-chart'
+import { TicketTable } from '~/app/_components/dashboard/analytics/ticket-table'
+import { ticketData, ticketTypes, latestTickets } from '~/app/_components/dashboard/analytics/data'
 
-export default async function Page() {
-  const session = await auth()
+export default function Page() {
+  return <Dashboard />
+}
 
-  if (!session?.user) {
-    redirect('/auth/login')
-  }
+function Dashboard() {
+  const pendingTickets = 15 // This would normally be calculated from your data
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">Building Your Application</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 pt-0">
-          {/* <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-          </div> */}
-          {/* <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" /> */}
-          <Mail defaultLayout={[20, 32, 48]} navCollapsedSize={48} />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="p-8">
+      <h1 className="mb-8 text-3xl font-bold">Helpdesk Dashboard</h1>
+      <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Pending Tickets"
+          value={pendingTickets}
+          description="Total number of open tickets"
+        />
+        <StatCard title="Avg. Response Time" value={2.5} description="Hours" />
+        <StatCard
+          title="Tickets Resolved Today"
+          value={23}
+          description="Total resolved in last 24 hours"
+        />
+        <StatCard title="Customer Satisfaction" value={94} description="Percentage" />
+      </div>
+      <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+        <TicketLineChart data={ticketData} />
+        <TicketPieChart data={ticketTypes} />
+      </div>
+      <TicketTable tickets={latestTickets} />
+    </div>
   )
 }

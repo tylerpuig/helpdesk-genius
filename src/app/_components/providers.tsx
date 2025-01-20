@@ -7,10 +7,7 @@ export function Providers({ children }: Readonly<{ children: React.ReactNode }>)
   return (
     <TRPCReactProvider>
       <SessionProvider>
-        <MessagesProvider>
-          {/* Add other providers here */}
-          {children}
-        </MessagesProvider>
+        <MessagesProvider>{children}</MessagesProvider>
       </SessionProvider>
     </TRPCReactProvider>
   )
