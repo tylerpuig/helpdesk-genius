@@ -78,7 +78,7 @@ const data = {
       // ]
     },
     {
-      title: 'Documentation',
+      title: 'Knowledge Base',
       url: '#',
       icon: BookOpen,
       items: [
@@ -125,21 +125,21 @@ const data = {
     }
   ],
   projects: [
-    {
-      name: 'Design Engineering',
-      url: '#',
-      icon: Frame
-    },
+    // {
+    //   name: 'Design Engineering',
+    //   url: '#',
+    //   icon: Frame
+    // },
     {
       name: 'Sales & Marketing',
       url: '#',
       icon: PieChart
-    },
-    {
-      name: 'Travel',
-      url: '#',
-      icon: Map
     }
+    // {
+    //   name: 'Travel',
+    //   url: '#',
+    //   icon: Map
+    // }
   ]
 }
 

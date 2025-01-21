@@ -3,6 +3,7 @@ import { db } from '~/server/db'
 import { eq, sql } from 'drizzle-orm'
 import { type TRPCContext } from '~/server/api/trpc'
 import * as openaiUtils from '~/server/integrations/openai'
+import bcrypt from 'bcrypt'
 
 export async function createNewEmailMessageReply(
   threadId: string,
@@ -196,5 +197,23 @@ export async function incrementUserResolvedThread(userId: string): Promise<void>
       .where(eq(schema.userDailyMetricsTable.userId, userId))
   } catch (error) {
     console.error('markThreadResolved', error)
+  }
+}
+
+export async function createNewUser(email: string, name: string, password: string) {
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10)
+    const [user] = await db
+      .insert(schema.users)
+      .values({
+        email,
+        name,
+        password: hashedPassword
+      })
+      .returning()
+
+    return user
+  } catch (error) {
+    console.error('createUser', error)
   }
 }

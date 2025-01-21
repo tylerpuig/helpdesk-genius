@@ -128,3 +128,23 @@ export async function getRecentTickets() {
     return []
   }
 }
+
+export async function getUserByEmail(email: string) {
+  try {
+    const [user] = await db
+      .select({
+        id: schema.users.id,
+        email: schema.users.email,
+        name: schema.users.name,
+        image: schema.users.image,
+        password: schema.users.password
+      })
+      .from(schema.users)
+      .where(eq(schema.users.email, email))
+
+    return user
+  } catch (err) {
+    console.error(err)
+    return null
+  }
+}
