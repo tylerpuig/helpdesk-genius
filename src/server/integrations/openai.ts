@@ -36,6 +36,17 @@ export async function generateEmailMessageReply(messageId: string) {
       throw new Error('No previous message found')
     }
 
+    const allConversationHistory = await db.query.messagesTable.findMany({
+      where: and(eq(schema.messagesTable.threadId, previousMessage.threadId)),
+      columns: {
+        content: true,
+        createdAt: true,
+        senderName: true,
+        role: true
+      },
+      orderBy: asc(schema.messagesTable.createdAt)
+    })
+
     const newMessageContent = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -45,7 +56,11 @@ export async function generateEmailMessageReply(messageId: string) {
         },
         {
           role: 'user',
-          content: `Write the email reply to: ${previousMessage.content}`
+          content: `Write the email reply to: ${previousMessage.content}. You are simulating ${customerName}.`
+        },
+        {
+          role: 'user',
+          content: `Here is the conversation history: ${JSON.stringify(allConversationHistory, null, 2)}`
         }
       ]
     })

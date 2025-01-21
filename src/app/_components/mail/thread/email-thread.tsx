@@ -7,6 +7,7 @@ import { type MessageData } from '~/trpc/types'
 import { useSession } from 'next-auth/react'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { Separator } from '~/components/ui/separator'
+import parse from 'html-react-parser'
 
 export function EmailThread({ messages }: { messages: MessageData[] }) {
   const [isThreadVisible, setIsThreadVisible] = useState(false)
@@ -20,7 +21,7 @@ export function EmailThread({ messages }: { messages: MessageData[] }) {
         }}
       >
         <div className="overflow-hidden">
-          <ScrollArea className="max-h-32rem">
+          <ScrollArea className="min-h-0">
             <div className="min-h-0">
               {messages.map((message) => (
                 <EmailThreadMessage key={message.id} message={message} />
@@ -48,7 +49,7 @@ export function EmailThread({ messages }: { messages: MessageData[] }) {
 function EmailThreadMessage({ message }: { message: MessageData }) {
   const { data: session } = useSession()
   const [isExpanded, setIsExpanded] = useState(false)
-  const contentRef = useRef<HTMLDivElement>(null)
+  // const contentRef = useRef<HTMLDivElement>(null)
 
   return (
     <div className="p-2">
@@ -92,12 +93,14 @@ function EmailThreadMessage({ message }: { message: MessageData }) {
           >
             <div className="overflow-hidden">
               <div className="mt-2 text-sm leading-relaxed text-gray-300">
-                {message?.content ?? ''}
+                {parse(message?.content ?? '')}
               </div>
             </div>
           </div>
           {!isExpanded && (
-            <p className="truncate text-sm text-gray-400">{message?.content.substring(0, 100)}</p>
+            <p className="truncate text-sm text-gray-400">
+              {parse(message?.content.substring(0, 100))}
+            </p>
           )}
         </div>
       </div>

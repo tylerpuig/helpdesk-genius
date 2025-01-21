@@ -10,7 +10,7 @@ import { api } from '~/trpc/react'
 export function MailList() {
   const { threads, selectedThreadId, setSelectedThreadId, refetchThreads } = useMessages()
 
-  const markThreadAsRead = api.messages.markThreadAsRead.useMutation({
+  const markThreadAsRead = api.messages.updateThreadReadStatus.useMutation({
     onSuccess: () => {
       refetchThreads()
     }
@@ -28,7 +28,7 @@ export function MailList() {
             )}
             onClick={() => {
               setSelectedThreadId(item.thread.id)
-              markThreadAsRead.mutate({ threadId: item.thread.id })
+              markThreadAsRead.mutate({ threadId: item.thread.id, isUnread: false })
             }}
           >
             <div className="flex w-full flex-col gap-1">

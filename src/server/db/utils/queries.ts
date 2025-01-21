@@ -1,4 +1,4 @@
-import { eq, sql, and, gte, lte, count } from 'drizzle-orm'
+import { eq, sql, and, gte, lte, count, desc } from 'drizzle-orm'
 import * as schema from '~/server/db/schema'
 import { db } from '~/server/db'
 
@@ -106,4 +106,25 @@ export async function getTicketsCreatedLast7Days() {
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
   return getTicketsCreatedOverTimeByDay(sevenDaysAgo, new Date())
+}
+
+export async function getRecentTickets() {
+  try {
+    const tickets = await db
+      .select({
+        id: schema.threadsTable.id,
+        title: schema.threadsTable.title,
+        priority: schema.threadsTable.priority,
+        status: schema.threadsTable.status,
+        createdAt: schema.threadsTable.createdAt
+      })
+      .from(schema.threadsTable)
+      .orderBy(desc(schema.threadsTable.createdAt))
+      .limit(5)
+
+    return tickets
+  } catch (err) {
+    console.error(err)
+    return []
+  }
 }

@@ -16,10 +16,10 @@ import { useSession } from 'next-auth/react'
 import { Content } from '@tiptap/react'
 import { MinimalTiptapEditor } from '~/app/_components/minimal-tiptap'
 import MessageUtilities from './message-utilities'
+import parse from 'html-react-parser'
 
 export function EmailMessagesDisplay() {
   const { messages, selectedThreadId, refetchThreads, refetchMessages, threads } = useMessages()
-  const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const [replyContent, setReplyContent] = useState<Content>('')
 
   const lastMessage = messages ? messages.at(-1) : null
@@ -28,17 +28,16 @@ export function EmailMessagesDisplay() {
   const sendMessage = api.messages.createEmailMessageReply.useMutation({
     onSuccess: () => {
       refetchMessages()
+      setReplyContent('')
     }
   })
 
   function handleSendEmailReply(): void {
-    if (messageInputRef.current && selectedThreadId) {
+    if (replyContent && selectedThreadId) {
       sendMessage.mutate({
         threadId: selectedThreadId,
-        content: messageInputRef.current.value
+        content: replyContent as string
       })
-
-      messageInputRef.current.value = ''
     }
   }
 
@@ -47,7 +46,9 @@ export function EmailMessagesDisplay() {
       <MessageUtilities />
       <Separator />
       {selectedThreadId && lastMessage ? (
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {' '}
+          {/* Added overflow-hidden */}
           <div className="flex items-start p-4">
             <div className="flex items-start gap-4 text-sm">
               <Avatar>
@@ -74,48 +75,50 @@ export function EmailMessagesDisplay() {
             )}
           </div>
           <Separator />
-          {messages.length > 1 && (
-            <EmailThread messages={lastMessageIsCustomer ? messages.slice(0, -1) : messages} />
-          )}
-
-          {!lastMessageIsCustomer && <UserHasRepliedAlert latestMessage={lastMessage} />}
-          {lastMessageIsCustomer && (
-            <div className="whitespace-pre-wrap p-4 text-sm">{lastMessage?.content}</div>
-          )}
-          <div className="flex flex-1 flex-col">
-            <div className="mt-[14rem]">
-              <Separator className="mt-2 w-full" />
-              <form className="p-4">
-                <div className="grid gap-4">
-                  <MinimalTiptapEditor
-                    value={replyContent}
-                    onChange={setReplyContent}
-                    className="w-full"
-                    editorContentClassName="p-5"
-                    output="html"
-                    placeholder={`${lastMessageIsCustomer ? `Reply to ${lastMessage?.senderName}` : 'Follow up'}...`}
-                    autofocus={true}
-                    editable={true}
-                    editorClassName="focus:outline-none"
-                  />
-                  <div className="flex items-center">
-                    <Label htmlFor="mute" className="flex items-center gap-2 text-xs font-normal">
-                      <Switch id="mute" aria-label="Mute thread" /> Mute this thread
-                    </Label>
-                    <Button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        handleSendEmailReply()
-                      }}
-                      size="sm"
-                      className="ml-auto px-4"
-                    >
-                      Send
-                    </Button>
-                  </div>
+          <div className="scrollbar-thin flex-1 overflow-y-auto">
+            {/* Added scrollable container */}
+            {messages.length > 1 && (
+              <EmailThread messages={lastMessageIsCustomer ? messages.slice(0, -1) : messages} />
+            )}
+            {!lastMessageIsCustomer && <UserHasRepliedAlert latestMessage={lastMessage} />}
+            {lastMessageIsCustomer && (
+              <div className="whitespace-pre-wrap p-4 text-sm">{parse(lastMessage?.content)}</div>
+            )}
+          </div>
+          <div className="flex-shrink-0">
+            {' '}
+            {/* Fixed bottom section */}
+            <Separator className="w-full" />
+            <form className="p-4">
+              <div className="grid gap-4">
+                <MinimalTiptapEditor
+                  value={replyContent}
+                  onChange={setReplyContent}
+                  className="w-full"
+                  editorContentClassName="p-5"
+                  output="html"
+                  placeholder={`${lastMessageIsCustomer ? `Reply to ${lastMessage?.senderName}` : 'Follow up'}...`}
+                  autofocus={true}
+                  editable={true}
+                  editorClassName="focus:outline-none"
+                />
+                <div className="flex items-center">
+                  <Label htmlFor="mute" className="flex items-center gap-2 text-xs font-normal">
+                    <Switch id="mute" aria-label="Mute thread" /> Mute this thread
+                  </Label>
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleSendEmailReply()
+                    }}
+                    size="sm"
+                    className="ml-auto px-4"
+                  >
+                    Send
+                  </Button>
                 </div>
-              </form>
-            </div>
+              </div>
+            </form>
           </div>
         </div>
       ) : (

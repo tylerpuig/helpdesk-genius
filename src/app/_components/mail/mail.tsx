@@ -1,30 +1,18 @@
 'use client'
 
 import * as React from 'react'
-import {
-  AlertCircle,
-  Archive,
-  ArchiveX,
-  File,
-  Inbox,
-  MessagesSquare,
-  Search,
-  Send,
-  ShoppingCart,
-  Trash2,
-  Users2
-} from 'lucide-react'
+import { Search } from 'lucide-react'
 
-import { cn } from '~/lib/utils'
+// import { cn } from '~/lib/utils'
 import { Input } from '~/components/ui/input'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/ui/resizable'
 import { Separator } from '~/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { TooltipProvider } from '~/components/ui/tooltip'
-import { AccountSwitcher } from '~/app/_components/mail/account-switcher'
+// import { AccountSwitcher } from '~/app/_components/mail/account-switcher'
 import { EmailMessagesDisplay } from '~/app/_components/mail/messages-display'
 import { MailList } from '~/app/_components/mail/thread-list'
-import { Nav } from '~/app/_components/mail/nav'
+// import { Nav } from '~/app/_components/mail/nav'
 
 type MailProps = {
   defaultLayout: number[] | undefined
@@ -37,8 +25,6 @@ export function Mail({
   defaultCollapsed = false,
   navCollapsedSize
 }: MailProps) {
-  const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed)
-
   return (
     <TooltipProvider delayDuration={0}>
       <ResizablePanelGroup
@@ -48,7 +34,6 @@ export function Mail({
         }}
         className="h-full max-h-screen items-stretch"
       >
-        {/* <ResizableHandle withHandle /> */}
         <ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>
           <Tabs defaultValue="all">
             <div className="flex items-center px-4 py-2">

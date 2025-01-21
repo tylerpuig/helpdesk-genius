@@ -18,7 +18,7 @@ export function StatCard({ title, value, description, isLoading }: StatCardProps
         {isLoading ? (
           <Skeleton className="h-4 w-[50%]" />
         ) : (
-          <div className="text-2xl font-bold">{value}</div>
+          <div className="text-2xl font-bold">{isNaN(value) ? 0 : value}</div>
         )}
         <p className="mt-2 text-xs text-muted-foreground">{description}</p>
       </CardContent>
