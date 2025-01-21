@@ -10,11 +10,11 @@ export default function Page() {
 }
 
 function Dashboard() {
-  const pendingTickets = 15 // This would normally be calculated from your data
+  const pendingTickets = 15
 
   return (
     <div className="p-8">
-      <h1 className="mb-8 text-3xl font-bold">Helpdesk Dashboard</h1>
+      <h1 className="mb-8 text-3xl font-bold">Dashboard</h1>
       <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Pending Tickets"

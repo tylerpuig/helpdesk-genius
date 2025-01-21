@@ -1,3 +1,5 @@
+'use client'
+import { useRef } from 'react'
 import { addDays } from 'date-fns/addDays'
 import { addHours } from 'date-fns/addHours'
 import { format } from 'date-fns/format'
@@ -25,13 +27,31 @@ import { Switch } from '~/components/ui/switch'
 import { Textarea } from '~/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useMessages } from '~/hooks/context/useMessages'
+import { api } from '~/trpc/react'
 
 export function EmailMessagesDisplay() {
   const today = new Date()
-  const { selectedMessageId, setSelectedMessageId, messages, selectedThreadId } = useMessages()
+  const { messages, selectedThreadId, refetchThreads } = useMessages()
+  const messageInputRef = useRef<HTMLTextAreaElement>(null)
 
   const lastMessage = messages ? messages.at(-1) : null
-  // console.log(lastMessage, messages)
+  const sendMessage = api.messages.createEmailMessageReply.useMutation()
+  const markThreadAsUnread = api.messages.markThreadAsUnread.useMutation({
+    onSuccess: () => {
+      refetchThreads()
+    }
+  })
+
+  function handleSendEmailReply(): void {
+    if (messageInputRef.current && selectedThreadId) {
+      sendMessage.mutate({
+        threadId: selectedThreadId,
+        content: messageInputRef.current.value
+      })
+
+      messageInputRef.current.value = ''
+    }
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -39,7 +59,7 @@ export function EmailMessagesDisplay() {
         <div className="flex items-center gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedMessageId}>
+              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
                 <Archive className="h-4 w-4" />
                 <span className="sr-only">Archive</span>
               </Button>
@@ -48,7 +68,7 @@ export function EmailMessagesDisplay() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedMessageId}>
+              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
                 <ArchiveX className="h-4 w-4" />
                 <span className="sr-only">Move to junk</span>
               </Button>
@@ -57,7 +77,7 @@ export function EmailMessagesDisplay() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedMessageId}>
+              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
                 <Trash2 className="h-4 w-4" />
                 <span className="sr-only">Move to trash</span>
               </Button>
@@ -69,7 +89,7 @@ export function EmailMessagesDisplay() {
             <Popover>
               <PopoverTrigger asChild>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" disabled={!selectedMessageId}>
+                  <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
                     <Clock className="h-4 w-4" />
                     <span className="sr-only">Snooze</span>
                   </Button>
@@ -116,7 +136,7 @@ export function EmailMessagesDisplay() {
         <div className="ml-auto flex items-center gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedMessageId}>
+              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
                 <Reply className="h-4 w-4" />
                 <span className="sr-only">Reply</span>
               </Button>
@@ -125,7 +145,7 @@ export function EmailMessagesDisplay() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedMessageId}>
+              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
                 <ReplyAll className="h-4 w-4" />
                 <span className="sr-only">Reply all</span>
               </Button>
@@ -134,7 +154,7 @@ export function EmailMessagesDisplay() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedMessageId}>
+              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
                 <Forward className="h-4 w-4" />
                 <span className="sr-only">Forward</span>
               </Button>
@@ -151,7 +171,14 @@ export function EmailMessagesDisplay() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>Mark as unread</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                if (!selectedThreadId) return
+                markThreadAsUnread.mutate({ threadId: selectedThreadId })
+              }}
+            >
+              Mark as unread
+            </DropdownMenuItem>
             <DropdownMenuItem>Star thread</DropdownMenuItem>
             <DropdownMenuItem>Add label</DropdownMenuItem>
             <DropdownMenuItem>Mute thread</DropdownMenuItem>
@@ -192,12 +219,23 @@ export function EmailMessagesDisplay() {
           <div className="p-4">
             <form>
               <div className="grid gap-4">
-                <Textarea className="p-4" placeholder={`Reply ${lastMessage?.senderName}...`} />
+                <Textarea
+                  ref={messageInputRef}
+                  className="p-4"
+                  placeholder={`Reply ${lastMessage?.senderName}...`}
+                />
                 <div className="flex items-center">
                   <Label htmlFor="mute" className="flex items-center gap-2 text-xs font-normal">
                     <Switch id="mute" aria-label="Mute thread" /> Mute this thread
                   </Label>
-                  <Button onClick={(e) => e.preventDefault()} size="sm" className="ml-auto">
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleSendEmailReply()
+                    }}
+                    size="sm"
+                    className="ml-auto"
+                  >
                     Send
                   </Button>
                 </div>

@@ -5,11 +5,16 @@ import { Badge } from '~/components/ui/badge'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { Separator } from '~/components/ui/separator'
 import { useMessages } from '~/hooks/context/useMessages'
+import { api } from '~/trpc/react'
 
 export function MailList() {
-  // const [mail, setMail] = useMail()
-  const { threads, selectedThreadId, setSelectedThreadId } = useMessages()
-  console.log(threads)
+  const { threads, selectedThreadId, setSelectedThreadId, refetchThreads } = useMessages()
+
+  const markThreadAsRead = api.messages.markThreadAsRead.useMutation({
+    onSuccess: () => {
+      refetchThreads()
+    }
+  })
 
   return (
     <ScrollArea className="h-screen">
@@ -23,15 +28,18 @@ export function MailList() {
             )}
             onClick={() => {
               setSelectedThreadId(item.thread.id)
+              markThreadAsRead.mutate({ threadId: item.thread.id })
             }}
           >
             <div className="flex w-full flex-col gap-1">
               <div className="flex items-center">
                 <div className="flex items-center gap-2">
-                  <div className="font-semibold">{item.thread.title}</div>
-                  {!item.latestMessage.isUnread && (
-                    <span className="flex h-2 w-2 rounded-full bg-blue-600" />
-                  )}
+                  <div className="font-semibold">
+                    {item.thread?.title ?? ''}
+                    {item.thread?.isUnread && (
+                      <span className="ml-2 inline-block h-2 w-2 rounded-full bg-blue-600" />
+                    )}
+                  </div>
                 </div>
                 <div
                   className={cn(

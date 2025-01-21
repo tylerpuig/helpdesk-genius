@@ -1,4 +1,4 @@
-import { useEffect, createContext, useState, useContext } from 'react'
+import { createContext, useState, useContext } from 'react'
 import type { ThreadData, MessageData } from '~/trpc/types'
 import { api } from '~/trpc/react'
 
@@ -11,6 +11,8 @@ type MessagesContextType = {
   selectedMessageId: string | null
   setSelectedMessageId(id: string | null): void
   messageIsPending: boolean
+  refetchMessages(): void
+  refetchThreads(): void
 }
 
 const MessagesContext = createContext<MessagesContextType>({
@@ -21,43 +23,41 @@ const MessagesContext = createContext<MessagesContextType>({
   messages: [],
   setSelectedMessageId: () => {},
   messageIsPending: false,
-  selectedMessageId: null
+  selectedMessageId: null,
+  refetchMessages: () => {},
+  refetchThreads: () => {}
 })
 
 export function MessagesProvider({ children }: { children: React.ReactNode }) {
-  //   const [threads, setThreads] = useState<ThreadData[]>([])
-  //   const [messages, setMessages] = useState<MessageData[]>([])
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
 
   const {
     data: threadsData,
     isPending: threadsIsPending,
-    isLoading: threadsIsLoading
-  } = api.messages.viewMessageThreads.useQuery()
-
-  //   useEffect(() => {
-  //     if (threadsData) {
-  //       setThreads(threadsData)
-  //     }
-  //   }, [threadsData])
+    isLoading: threadsIsLoading,
+    refetch: refetchThreadsTrpc
+  } = api.messages.viewEmailMessageThreads.useQuery()
 
   const {
     data: messagesData,
     isPending: messagesIsPending,
-    isLoading: messagesIsLoading
-  } = api.messages.getMessagesFromThread.useQuery(
+    isLoading: messagesIsLoading,
+    refetch: refetchMessagesTrpc
+  } = api.messages.getEmailMessagesFromThread.useQuery(
     { threadId: selectedThreadId ?? '' },
     {
       enabled: selectedThreadId !== null
     }
   )
 
-  //   useEffect(() => {
-  //     if (messagesData) {
-  //       setMessages(messagesData)
-  //     }
-  //   }, [messagesData])
+  function refetchMessages(): void {
+    refetchMessagesTrpc()
+  }
+
+  function refetchThreads(): void {
+    refetchThreadsTrpc()
+  }
 
   return (
     <MessagesContext.Provider
@@ -69,7 +69,9 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
         messages: messagesData ?? [],
         setSelectedMessageId,
         messageIsPending: messagesIsPending || messagesIsLoading,
-        selectedMessageId
+        selectedMessageId,
+        refetchMessages,
+        refetchThreads
       }}
     >
       {children}
