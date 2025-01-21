@@ -59,6 +59,8 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
     refetchThreadsTrpc()
   }
 
+  console.log('messagesData', messagesData)
+
   return (
     <MessagesContext.Provider
       value={{

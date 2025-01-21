@@ -14,7 +14,7 @@ import {
   ReplyAll,
   Trash2
 } from 'lucide-react'
-
+import { EmailThread } from '~/app/_components/mail/thread/email-thread'
 import { DropdownMenuContent, DropdownMenuItem } from '~/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
@@ -31,11 +31,15 @@ import { api } from '~/trpc/react'
 
 export function EmailMessagesDisplay() {
   const today = new Date()
-  const { messages, selectedThreadId, refetchThreads } = useMessages()
+  const { messages, selectedThreadId, refetchThreads, refetchMessages } = useMessages()
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
 
   const lastMessage = messages ? messages.at(-1) : null
-  const sendMessage = api.messages.createEmailMessageReply.useMutation()
+  const sendMessage = api.messages.createEmailMessageReply.useMutation({
+    onSuccess: () => {
+      refetchMessages()
+    }
+  })
   const markThreadAsUnread = api.messages.markThreadAsUnread.useMutation({
     onSuccess: () => {
       refetchThreads()
@@ -214,7 +218,10 @@ export function EmailMessagesDisplay() {
             )}
           </div>
           <Separator />
-          <div className="flex-1 whitespace-pre-wrap p-4 text-sm">{lastMessage?.content}</div>
+          {messages.length > 1 && <EmailThread messages={messages} />}
+          {lastMessage?.role === 'customer' && (
+            <div className="flex-1 whitespace-pre-wrap p-4 text-sm">{lastMessage?.content}</div>
+          )}
           <Separator className="mt-auto" />
           <div className="p-4">
             <form>

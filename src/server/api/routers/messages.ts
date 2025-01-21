@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
-import { and, eq, desc } from 'drizzle-orm'
+import { and, eq, desc, asc } from 'drizzle-orm'
 import * as schema from '~/server/db/schema'
 import * as dbInsertionUtils from '~/server/db/utils/insertions'
 
@@ -55,7 +55,7 @@ export const messagesRouter = createTRPCRouter({
         })
         .from(schema.messagesTable)
         .where(eq(schema.messagesTable.threadId, input.threadId))
-        .orderBy(desc(schema.messagesTable.createdAt))
+        .orderBy(asc(schema.messagesTable.createdAt))
 
       return messages
     }),
