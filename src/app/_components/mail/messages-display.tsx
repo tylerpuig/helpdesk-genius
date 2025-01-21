@@ -1,5 +1,5 @@
 'use client'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { addDays } from 'date-fns/addDays'
 import { addHours } from 'date-fns/addHours'
 import { format } from 'date-fns/format'
@@ -12,8 +12,10 @@ import {
   MoreVertical,
   Reply,
   ReplyAll,
-  Trash2
+  Trash2,
+  CircleCheck
 } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { EmailThread } from '~/app/_components/mail/thread/email-thread'
 import { DropdownMenuContent, DropdownMenuItem } from '~/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
@@ -28,21 +30,27 @@ import { Textarea } from '~/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useMessages } from '~/hooks/context/useMessages'
 import { api } from '~/trpc/react'
+import { type MessageData } from '~/trpc/types'
+import { useSession } from 'next-auth/react'
+import { Content } from '@tiptap/react'
+import { MinimalTiptapEditor } from '~/app/_components/minimal-tiptap'
+import MessageUtilities from './message-utilities'
 
 export function EmailMessagesDisplay() {
   const today = new Date()
-  const { messages, selectedThreadId, refetchThreads, refetchMessages } = useMessages()
+  const { messages, selectedThreadId, refetchThreads, refetchMessages, threads } = useMessages()
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
+  const [replyContent, setReplyContent] = useState<Content>('')
+  const viewingThread = selectedThreadId
+    ? threads.find((item) => item.thread.id === selectedThreadId)
+    : null
 
   const lastMessage = messages ? messages.at(-1) : null
+  const lastMessageIsCustomer = lastMessage?.role === 'customer'
+
   const sendMessage = api.messages.createEmailMessageReply.useMutation({
     onSuccess: () => {
       refetchMessages()
-    }
-  })
-  const markThreadAsUnread = api.messages.markThreadAsUnread.useMutation({
-    onSuccess: () => {
-      refetchThreads()
     }
   })
 
@@ -59,136 +67,7 @@ export function EmailMessagesDisplay() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center p-2">
-        <div className="flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
-                <Archive className="h-4 w-4" />
-                <span className="sr-only">Archive</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Archive</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
-                <ArchiveX className="h-4 w-4" />
-                <span className="sr-only">Move to junk</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Move to junk</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
-                <Trash2 className="h-4 w-4" />
-                <span className="sr-only">Move to trash</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Move to trash</TooltipContent>
-          </Tooltip>
-          <Separator orientation="vertical" className="mx-1 h-6" />
-          <Tooltip>
-            <Popover>
-              <PopoverTrigger asChild>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
-                    <Clock className="h-4 w-4" />
-                    <span className="sr-only">Snooze</span>
-                  </Button>
-                </TooltipTrigger>
-              </PopoverTrigger>
-              <PopoverContent className="flex w-[535px] p-0">
-                <div className="flex flex-col gap-2 border-r px-2 py-4">
-                  <div className="px-4 text-sm font-medium">Snooze until</div>
-                  <div className="grid min-w-[250px] gap-1">
-                    <Button variant="ghost" className="justify-start font-normal">
-                      Later today{' '}
-                      <span className="ml-auto text-muted-foreground">
-                        {format(addHours(today, 4), 'E, h:m b')}
-                      </span>
-                    </Button>
-                    <Button variant="ghost" className="justify-start font-normal">
-                      Tomorrow
-                      <span className="ml-auto text-muted-foreground">
-                        {format(addDays(today, 1), 'E, h:m b')}
-                      </span>
-                    </Button>
-                    <Button variant="ghost" className="justify-start font-normal">
-                      This weekend
-                      <span className="ml-auto text-muted-foreground">
-                        {format(nextSaturday(today), 'E, h:m b')}
-                      </span>
-                    </Button>
-                    <Button variant="ghost" className="justify-start font-normal">
-                      Next week
-                      <span className="ml-auto text-muted-foreground">
-                        {format(addDays(today, 7), 'E, h:m b')}
-                      </span>
-                    </Button>
-                  </div>
-                </div>
-                <div className="p-2">
-                  <Calendar />
-                </div>
-              </PopoverContent>
-            </Popover>
-            <TooltipContent>Snooze</TooltipContent>
-          </Tooltip>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
-                <Reply className="h-4 w-4" />
-                <span className="sr-only">Reply</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Reply</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
-                <ReplyAll className="h-4 w-4" />
-                <span className="sr-only">Reply all</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Reply all</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
-                <Forward className="h-4 w-4" />
-                <span className="sr-only">Forward</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Forward</TooltipContent>
-          </Tooltip>
-        </div>
-        <Separator orientation="vertical" className="mx-2 h-6" />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" disabled={!lastMessage}>
-              <MoreVertical className="h-4 w-4" />
-              <span className="sr-only">More</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => {
-                if (!selectedThreadId) return
-                markThreadAsUnread.mutate({ threadId: selectedThreadId })
-              }}
-            >
-              Mark as unread
-            </DropdownMenuItem>
-            <DropdownMenuItem>Star thread</DropdownMenuItem>
-            <DropdownMenuItem>Add label</DropdownMenuItem>
-            <DropdownMenuItem>Mute thread</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <MessageUtilities />
       <Separator />
       {selectedThreadId && lastMessage ? (
         <div className="flex flex-1 flex-col">
@@ -218,41 +97,75 @@ export function EmailMessagesDisplay() {
             )}
           </div>
           <Separator />
-          {messages.length > 1 && <EmailThread messages={messages} />}
-          {lastMessage?.role === 'customer' && (
-            <div className="flex-1 whitespace-pre-wrap p-4 text-sm">{lastMessage?.content}</div>
+          {messages.length > 1 && (
+            <EmailThread messages={lastMessageIsCustomer ? messages.slice(0, -1) : messages} />
           )}
-          <Separator className="mt-auto" />
-          <div className="p-4">
-            <form>
-              <div className="grid gap-4">
-                <Textarea
-                  ref={messageInputRef}
-                  className="p-4"
-                  placeholder={`Reply ${lastMessage?.senderName}...`}
-                />
-                <div className="flex items-center">
-                  <Label htmlFor="mute" className="flex items-center gap-2 text-xs font-normal">
-                    <Switch id="mute" aria-label="Mute thread" /> Mute this thread
-                  </Label>
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleSendEmailReply()
-                    }}
-                    size="sm"
-                    className="ml-auto"
-                  >
-                    Send
-                  </Button>
+
+          {!lastMessageIsCustomer && <UserHasRepliedAlert latestMessage={lastMessage} />}
+          {lastMessageIsCustomer && (
+            <div className="whitespace-pre-wrap p-4 text-sm">{lastMessage?.content}</div>
+          )}
+          <div className="flex flex-1 flex-col">
+            <div className="mt-[14rem]">
+              <Separator className="mt-2 w-full" />
+              <form className="p-4">
+                <div className="grid gap-4">
+                  <MinimalTiptapEditor
+                    value={replyContent}
+                    onChange={setReplyContent}
+                    className="w-full"
+                    editorContentClassName="p-5"
+                    output="html"
+                    placeholder={`${lastMessageIsCustomer ? `Reply to ${lastMessage?.senderName}` : 'Follow up'}...`}
+                    autofocus={true}
+                    editable={true}
+                    editorClassName="focus:outline-none"
+                  />
+                  {/* <Textarea
+                    ref={messageInputRef}
+                    className="h-32 p-2 !text-lg"
+                    placeholder={`${lastMessageIsCustomer ? `Reply to ${lastMessage?.senderName}` : 'Follow up'}...`}
+                  /> */}
+                  <div className="flex items-center">
+                    <Label htmlFor="mute" className="flex items-center gap-2 text-xs font-normal">
+                      <Switch id="mute" aria-label="Mute thread" /> Mute this thread
+                    </Label>
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleSendEmailReply()
+                      }}
+                      size="sm"
+                      className="ml-auto px-4"
+                    >
+                      Send
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       ) : (
         <div className="p-8 text-center text-muted-foreground">No message selected</div>
       )}
+    </div>
+  )
+}
+
+function UserHasRepliedAlert({ latestMessage }: { latestMessage: MessageData }) {
+  const { data: session } = useSession()
+  const isSameUser = latestMessage?.senderEmail === session?.user?.email
+  const userName = isSameUser ? 'You' : latestMessage?.senderName
+  return (
+    <div className="px-4">
+      <Alert>
+        <CircleCheck className="h-4 w-4 stroke-green-500" />
+        <AlertTitle>Ticket resolved</AlertTitle>
+        <AlertDescription>
+          {userName} replied to this email at {latestMessage?.createdAt?.toLocaleString()}
+        </AlertDescription>
+      </Alert>
     </div>
   )
 }

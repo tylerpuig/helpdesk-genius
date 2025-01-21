@@ -2,6 +2,7 @@ import * as schema from '~/server/db/schema'
 import { db } from '~/server/db'
 import { eq, sql } from 'drizzle-orm'
 import { type TRPCContext } from '~/server/api/trpc'
+import * as openaiUtils from '~/server/integrations/openai'
 
 export async function createNewEmailMessageReply(
   threadId: string,
@@ -20,15 +21,20 @@ export async function createNewEmailMessageReply(
 
     const messageCreationDate = new Date()
 
-    await db.insert(schema.messagesTable).values({
-      threadId: threadId,
-      content: messageContent,
-      senderEmail: context?.session?.user?.email ?? '',
-      senderName: context?.session?.user?.name ?? '',
-      role: 'agent',
-      createdAt: messageCreationDate,
-      isUnread: false
-    })
+    const [newMessage] = await db
+      .insert(schema.messagesTable)
+      .values({
+        threadId: threadId,
+        content: messageContent,
+        senderEmail: context?.session?.user?.email ?? '',
+        senderName: context?.session?.user?.name ?? '',
+        role: 'agent',
+        createdAt: messageCreationDate,
+        isUnread: false
+      })
+      .returning({
+        id: schema.messagesTable.id
+      })
 
     // Mark thread as read
     await updateIsThreadRead(threadId, true)
@@ -42,6 +48,10 @@ export async function createNewEmailMessageReply(
         responseTimeInSeconds,
         lastMessageAt: messageCreationDate
       })
+    }
+
+    if (newMessage?.id) {
+      await openaiUtils.generateEmailMessageReply(newMessage.id)
     }
   } catch (error) {
     console.error('createNewEmailMessageReply', error)

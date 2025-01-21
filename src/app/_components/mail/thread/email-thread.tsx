@@ -9,7 +9,7 @@ import { ScrollArea } from '~/components/ui/scroll-area'
 import { Separator } from '~/components/ui/separator'
 
 export function EmailThread({ messages }: { messages: MessageData[] }) {
-  const [isThreadVisible, setIsThreadVisible] = useState(true)
+  const [isThreadVisible, setIsThreadVisible] = useState(false)
 
   return (
     <div className="flex flex-col">
