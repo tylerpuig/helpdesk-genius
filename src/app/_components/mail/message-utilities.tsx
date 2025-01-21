@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip
 import { useMessages } from '~/hooks/context/useMessages'
 import { api } from '~/trpc/react'
 import { type ThreadStatus } from '~/server/db/types'
+import { useForwardMessageDialog } from '~/app/_components/mail/utilities/forward-email-message/useForwardMessage'
 
 const updateThreadStatusButtons: Array<{
   status: ThreadStatus
@@ -60,6 +61,7 @@ const updateThreadStatusButtons: Array<{
 export default function MessageUtilities() {
   const today = new Date()
   const { selectedThreadId, threads, refetchThreads } = useMessages()
+  const { open: openForwardMessageDialog } = useForwardMessageDialog()
 
   const viewingThread = selectedThreadId
     ? threads.find((item) => item.thread.id === selectedThreadId)
@@ -174,7 +176,12 @@ export default function MessageUtilities() {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
+            <Button
+              onClick={() => openForwardMessageDialog()}
+              variant="ghost"
+              size="icon"
+              disabled={!selectedThreadId}
+            >
               <Forward className="h-4 w-4" />
               <span className="sr-only">Forward</span>
             </Button>

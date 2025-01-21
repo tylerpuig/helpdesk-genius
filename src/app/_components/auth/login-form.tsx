@@ -9,7 +9,6 @@ import { Label } from '~/components/ui/label'
 import { signIn } from 'next-auth/react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
-import { api } from '~/trpc/react'
 
 const demoUser = {
   email: 'demo@example.com',

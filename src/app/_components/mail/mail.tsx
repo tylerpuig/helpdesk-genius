@@ -14,6 +14,7 @@ import { EmailMessagesDisplay } from '~/app/_components/mail/messages-display'
 import { MailList } from '~/app/_components/mail/thread-list'
 // import { Nav } from '~/app/_components/mail/nav'
 import FilterThread from '~/app/_components/mail/thread/filter-thread'
+import { EmailForwardDialog } from '~/app/_components/mail/utilities/forward-email-message/forward-email-message'
 
 type MailProps = {
   defaultLayout: number[] | undefined
@@ -71,6 +72,7 @@ export function Mail({
           <EmailMessagesDisplay />
         </ResizablePanel>
       </ResizablePanelGroup>
+      <EmailForwardDialog />
     </TooltipProvider>
   )
 }
