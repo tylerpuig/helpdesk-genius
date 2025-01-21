@@ -1,6 +1,7 @@
 import { relations, sql } from 'drizzle-orm'
 import {
   index,
+  uniqueIndex,
   integer,
   primaryKey,
   text,
@@ -129,14 +130,21 @@ export const threadsTable = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
+    channel: varchar('channel', { length: 50 }).notNull().$type<DBTypes.MessageChannel>(), // 'email', 'chat', etc.
     updatedAt: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date()),
     lastMessageAt: timestamp('last_message_at', { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
-      .notNull()
+      .notNull(),
+    isUnread: boolean('is_unread').default(true),
+    messageCount: integer('message_count').notNull().default(0),
+    customerMessageCount: integer('customer_message_count').notNull().default(0),
+    agentMessageCount: integer('agent_message_count').notNull().default(0),
+    firstResponseTime: integer('first_response_time') // in seconds, null until first response
   },
   (thread) => [
     index('thread_status_idx').on(thread.status),
-    index('thread_last_message_idx').on(thread.lastMessageAt)
+    index('thread_last_message_idx').on(thread.lastMessageAt),
+    index('thread_channel_idx').on(thread.channel)
   ]
 )
 
@@ -171,7 +179,6 @@ export const messagesTable = pgTable(
     threadId: varchar('thread_id', { length: 255 })
       .notNull()
       .references(() => threadsTable.id),
-    channel: varchar('channel', { length: 50 }).notNull().$type<DBTypes.MessageChannel>(), // 'email', 'chat', etc.
     content: text('content').notNull(),
     senderEmail: varchar('sender_email', { length: 255 }).notNull(),
     senderName: varchar('sender_name', { length: 255 }),
@@ -187,11 +194,71 @@ export const messagesTable = pgTable(
   ]
 )
 
+// For daily metrics per user
+export const userDailyMetricsTable = pgTable(
+  'user_daily_metrics',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: varchar('user_id', { length: 255 })
+      .notNull()
+      .references(() => users.id),
+    date: timestamp('date', { withTimezone: true })
+      .notNull()
+      .default(sql`date_trunc('day', CURRENT_TIMESTAMP)`),
+    threadsAssigned: integer('threads_assigned').notNull().default(0),
+    threadsResolved: integer('threads_resolved').notNull().default(0),
+    totalResponseTime: integer('total_response_time').notNull().default(0),
+    responseCount: integer('response_count').notNull().default(0),
+    averageFirstResponseTime: integer('average_first_response_time').notNull().default(0),
+    customerMessageCount: integer('customer_message_count').notNull().default(0),
+    agentMessageCount: integer('agent_message_count').notNull().default(0)
+  },
+  (metric) => [
+    uniqueIndex('user_daily_metrics_user_date_idx').using(
+      'btree',
+      metric.userId.asc(),
+      metric.date.asc()
+    ),
+    // Individual indexes for performance
+    index('user_daily_metrics_user_idx').on(metric.userId),
+    index('user_daily_metrics_date_idx').on(metric.date)
+  ]
+)
+
+// For overall user stats (lifetime metrics)
+export const userStatsTable = pgTable('user_stats', {
+  userId: varchar('user_id', { length: 255 })
+    .notNull()
+    .primaryKey()
+    .references(() => users.id),
+  totalThreadsHandled: integer('total_threads_handled').notNull().default(0),
+  totalThreadsResolved: integer('total_threads_resolved').notNull().default(0),
+  averageResponseTime: integer('average_response_time').notNull().default(0),
+  averageFirstResponseTime: integer('average_first_response_time').notNull().default(0),
+  totalCustomerMessages: integer('total_customer_messages').notNull().default(0),
+  totalAgentMessages: integer('total_agent_messages').notNull().default(0),
+  lastActiveAt: timestamp('last_active_at', { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull()
+})
+
+// Add relations
+export const userDailyMetricsRelations = relations(userDailyMetricsTable, ({ one }) => ({
+  user: one(users, { fields: [userDailyMetricsTable.userId], references: [users.id] })
+}))
+
+export const userStatsRelations = relations(userStatsTable, ({ one }) => ({
+  user: one(users, { fields: [userStatsTable.userId], references: [users.id] })
+}))
+
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts)
 }))
 
-export const threadsRelations = relations(threadsTable, ({ many, one }) => ({
+export const threadsRelations = relations(threadsTable, ({ many }) => ({
   messages: many(messagesTable),
   assignments: many(threadAssignmentsTable)
 }))

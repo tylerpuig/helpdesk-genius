@@ -26,7 +26,6 @@ CREATE TABLE "contact" (
 CREATE TABLE "message" (
 	"id" varchar(255) PRIMARY KEY NOT NULL,
 	"thread_id" varchar(255) NOT NULL,
-	"channel" varchar(50) NOT NULL,
 	"content" text NOT NULL,
 	"sender_email" varchar(255) NOT NULL,
 	"sender_name" varchar(255),
@@ -54,8 +53,38 @@ CREATE TABLE "thread" (
 	"priority" varchar(50) DEFAULT 'low' NOT NULL,
 	"title" varchar(256),
 	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	"channel" varchar(50) NOT NULL,
 	"updated_at" timestamp with time zone,
-	"last_message_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+	"last_message_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	"is_unread" boolean DEFAULT true,
+	"message_count" integer DEFAULT 0 NOT NULL,
+	"customer_message_count" integer DEFAULT 0 NOT NULL,
+	"agent_message_count" integer DEFAULT 0 NOT NULL,
+	"first_response_time" integer
+);
+--> statement-breakpoint
+CREATE TABLE "user_daily_metrics" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"user_id" varchar(255) NOT NULL,
+	"date" timestamp with time zone DEFAULT date_trunc('day', CURRENT_TIMESTAMP) NOT NULL,
+	"threads_assigned" integer DEFAULT 0 NOT NULL,
+	"threads_resolved" integer DEFAULT 0 NOT NULL,
+	"total_response_time" integer DEFAULT 0 NOT NULL,
+	"response_count" integer DEFAULT 0 NOT NULL,
+	"average_first_response_time" integer DEFAULT 0 NOT NULL,
+	"customer_message_count" integer DEFAULT 0 NOT NULL,
+	"agent_message_count" integer DEFAULT 0 NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "user_stats" (
+	"user_id" varchar(255) PRIMARY KEY NOT NULL,
+	"total_threads_handled" integer DEFAULT 0 NOT NULL,
+	"total_threads_resolved" integer DEFAULT 0 NOT NULL,
+	"average_response_time" integer DEFAULT 0 NOT NULL,
+	"average_first_response_time" integer DEFAULT 0 NOT NULL,
+	"total_customer_messages" integer DEFAULT 0 NOT NULL,
+	"total_agent_messages" integer DEFAULT 0 NOT NULL,
+	"last_active_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "user" (
@@ -78,6 +107,8 @@ ALTER TABLE "message" ADD CONSTRAINT "message_thread_id_thread_id_fk" FOREIGN KE
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "thread_assignment" ADD CONSTRAINT "thread_assignment_thread_id_thread_id_fk" FOREIGN KEY ("thread_id") REFERENCES "public"."thread"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "thread_assignment" ADD CONSTRAINT "thread_assignment_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "user_daily_metrics" ADD CONSTRAINT "user_daily_metrics_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "user_stats" ADD CONSTRAINT "user_stats_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_user_id_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "contact_email_idx" ON "contact" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "message_thread_id_idx" ON "message" USING btree ("thread_id");--> statement-breakpoint
@@ -86,4 +117,8 @@ CREATE INDEX "session_user_id_idx" ON "session" USING btree ("user_id");--> stat
 CREATE INDEX "thread_assignment_thread_idx" ON "thread_assignment" USING btree ("thread_id");--> statement-breakpoint
 CREATE INDEX "thread_assignment_user_idx" ON "thread_assignment" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "thread_status_idx" ON "thread" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "thread_last_message_idx" ON "thread" USING btree ("last_message_at");
+CREATE INDEX "thread_last_message_idx" ON "thread" USING btree ("last_message_at");--> statement-breakpoint
+CREATE INDEX "thread_channel_idx" ON "thread" USING btree ("channel");--> statement-breakpoint
+CREATE UNIQUE INDEX "user_daily_metrics_user_date_idx" ON "user_daily_metrics" USING btree ("user_id","date");--> statement-breakpoint
+CREATE INDEX "user_daily_metrics_user_idx" ON "user_daily_metrics" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "user_daily_metrics_date_idx" ON "user_daily_metrics" USING btree ("date");
