@@ -173,9 +173,9 @@ async function getAllContacts() {
   }
 }
 
-// generateNewThreads(5)
+generateNewThreads(10)
 
-async function generateNewThreads(amount: number) {
+async function generateNewThreads(amount: number, iterations: number = amount) {
   try {
     let iterations: number = amount
     let currentContacts = await getAllContacts()

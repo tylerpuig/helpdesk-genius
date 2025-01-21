@@ -1,6 +1,7 @@
 import { createContext, useState, useContext } from 'react'
 import type { ThreadData, MessageData } from '~/trpc/types'
 import { api } from '~/trpc/react'
+import { type ThreadStatus } from '~/server/db/types'
 
 type MessagesContextType = {
   threads: ThreadData[]
@@ -13,6 +14,8 @@ type MessagesContextType = {
   messageIsPending: boolean
   refetchMessages(): void
   refetchThreads(): void
+  selectedThreadStatus: ThreadStatus
+  setSelectedThreadStatus(status: ThreadStatus): void
 }
 
 const MessagesContext = createContext<MessagesContextType>({
@@ -25,19 +28,24 @@ const MessagesContext = createContext<MessagesContextType>({
   messageIsPending: false,
   selectedMessageId: null,
   refetchMessages: () => {},
-  refetchThreads: () => {}
+  refetchThreads: () => {},
+  selectedThreadStatus: 'open',
+  setSelectedThreadStatus: () => {}
 })
 
 export function MessagesProvider({ children }: { children: React.ReactNode }) {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
+  const [selectedThreadStatus, setSelectedThreadStatus] = useState<ThreadStatus>('open')
 
   const {
     data: threadsData,
     isPending: threadsIsPending,
     isLoading: threadsIsLoading,
     refetch: refetchThreadsTrpc
-  } = api.messages.viewEmailMessageThreads.useQuery()
+  } = api.messages.viewEmailMessageThreads.useQuery({
+    status: selectedThreadStatus
+  })
 
   const {
     data: messagesData,
@@ -71,7 +79,9 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
         messageIsPending: messagesIsPending || messagesIsLoading,
         selectedMessageId,
         refetchMessages,
-        refetchThreads
+        refetchThreads,
+        selectedThreadStatus,
+        setSelectedThreadStatus
       }}
     >
       {children}

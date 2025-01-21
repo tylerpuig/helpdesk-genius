@@ -10,7 +10,8 @@ import {
   MoreVertical,
   Reply,
   ReplyAll,
-  Trash2
+  Trash2,
+  CheckCheck
 } from 'lucide-react'
 import { DropdownMenuContent, DropdownMenuItem } from '~/components/ui/dropdown-menu'
 import { Button } from '~/components/ui/button'
@@ -21,6 +22,40 @@ import { Separator } from '~/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useMessages } from '~/hooks/context/useMessages'
 import { api } from '~/trpc/react'
+import { type ThreadStatus } from '~/server/db/types'
+
+const updateThreadStatusButtons: Array<{
+  status: ThreadStatus
+  label: string
+  tooltipContent: string
+  icon: React.ReactNode
+}> = [
+  {
+    status: 'archived',
+    label: 'Archive',
+    tooltipContent: 'Archive',
+    icon: <Archive className="h-4 w-4" />
+  },
+
+  {
+    status: 'junk',
+    label: 'Move to junk',
+    tooltipContent: 'Move to junk',
+    icon: <ArchiveX className="h-4 w-4" />
+  },
+  {
+    status: 'trash',
+    label: 'Move to trash',
+    tooltipContent: 'Move to trash',
+    icon: <Trash2 className="h-4 w-4" />
+  },
+  {
+    status: 'closed',
+    label: 'Close',
+    tooltipContent: 'Close',
+    icon: <CheckCheck className="h-4 w-4" />
+  }
+]
 
 export default function MessageUtilities() {
   const today = new Date()
@@ -37,36 +72,38 @@ export default function MessageUtilities() {
       refetchThreads()
     }
   })
+
+  const updateThreadStatus = api.messages.updateThreadStatus.useMutation({
+    onSuccess: () => {
+      refetchThreads()
+    }
+  })
   return (
     <div className="flex items-center p-2">
       <div className="flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
-              <Archive className="h-4 w-4" />
-              <span className="sr-only">Archive</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Archive</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
-              <ArchiveX className="h-4 w-4" />
-              <span className="sr-only">Move to junk</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Move to junk</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" disabled={!selectedThreadId}>
-              <Trash2 className="h-4 w-4" />
-              <span className="sr-only">Move to trash</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Move to trash</TooltipContent>
-        </Tooltip>
+        {updateThreadStatusButtons.map((el) => (
+          <Tooltip key={el.status}>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => {
+                  if (!selectedThreadId) return
+                  updateThreadStatus.mutate({
+                    threadId: selectedThreadId,
+                    status: el.status
+                  })
+                }}
+                variant="ghost"
+                size="icon"
+                disabled={!selectedThreadId}
+              >
+                {el.icon}
+                <span className="sr-only">{el.label}</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{el.tooltipContent}</TooltipContent>
+          </Tooltip>
+        ))}
+
         <Separator orientation="vertical" className="mx-1 h-6" />
         <Tooltip>
           <Popover>

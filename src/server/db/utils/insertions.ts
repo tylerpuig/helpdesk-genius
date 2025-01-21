@@ -182,3 +182,19 @@ export async function updateIsThreadRead(threadId: string, status: boolean): Pro
     console.error('updateIsThreadRead', error)
   }
 }
+
+export async function incrementUserResolvedThread(userId: string): Promise<void> {
+  try {
+    await db
+      .update(schema.userStatsTable)
+      .set({ totalThreadsResolved: sql`${schema.userStatsTable.totalThreadsResolved} + 1` })
+      .where(eq(schema.userStatsTable.userId, userId))
+
+    await db
+      .update(schema.userDailyMetricsTable)
+      .set({ threadsResolved: sql`${schema.userDailyMetricsTable.threadsResolved} + 1` })
+      .where(eq(schema.userDailyMetricsTable.userId, userId))
+  } catch (error) {
+    console.error('markThreadResolved', error)
+  }
+}

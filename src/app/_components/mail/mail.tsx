@@ -13,6 +13,7 @@ import { TooltipProvider } from '~/components/ui/tooltip'
 import { EmailMessagesDisplay } from '~/app/_components/mail/messages-display'
 import { MailList } from '~/app/_components/mail/thread-list'
 // import { Nav } from '~/app/_components/mail/nav'
+import FilterThread from '~/app/_components/mail/thread/filter-thread'
 
 type MailProps = {
   defaultLayout: number[] | undefined
@@ -36,16 +37,17 @@ export function Mail({
       >
         <ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>
           <Tabs defaultValue="all">
-            <div className="flex items-center px-4 py-2">
+            <div className="flex items-center justify-between px-4 py-2">
               <h1 className="text-xl font-bold">Inbox</h1>
-              <TabsList className="ml-auto">
+              <FilterThread />
+              {/* <TabsList className="ml-auto">
                 <TabsTrigger value="all" className="text-zinc-600 dark:text-zinc-200">
                   All mail
                 </TabsTrigger>
                 <TabsTrigger value="unread" className="text-zinc-600 dark:text-zinc-200">
                   Unread
                 </TabsTrigger>
-              </TabsList>
+              </TabsList> */}
             </div>
             <Separator />
             <div className="bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -56,12 +58,12 @@ export function Mail({
                 </div>
               </form>
             </div>
-            <TabsContent value="all" className="m-0">
-              <MailList />
-            </TabsContent>
-            <TabsContent value="unread" className="m-0">
-              <MailList />
-            </TabsContent>
+            {/* <TabsContent value="all" className="m-0"> */}
+            <MailList />
+            {/* </TabsContent> */}
+            {/* <TabsContent value="unread" className="m-0"> */}
+            {/* <MailList /> */}
+            {/* </TabsContent> */}
           </Tabs>
         </ResizablePanel>
         <ResizableHandle withHandle />
