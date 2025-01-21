@@ -68,15 +68,19 @@ const handleError = (
 
 const handleDataUrl = (src: string): { blob: Blob; extension: string } => {
   const [header, base64Data] = src.split(',')
-  const mimeType = header.split(':')[1].split(';')[0]
-  const extension = mimeType.split('/')[1]
+  if (!header || !base64Data) {
+    return { blob: new Blob(), extension: '' }
+  }
+  const mimeType = header?.split(':')?.[1]?.split(';')[0]
+  const extension = mimeType?.split('/')?.[1]
+
   const byteCharacters = atob(base64Data)
   const byteArray = new Uint8Array(byteCharacters.length)
   for (let i = 0; i < byteCharacters.length; i++) {
     byteArray[i] = byteCharacters.charCodeAt(i)
   }
   const blob = new Blob([byteArray], { type: mimeType })
-  return { blob, extension }
+  return { blob, extension: extension ?? '' }
 }
 
 const handleImageUrl = async (src: string): Promise<{ blob: Blob; extension: string }> => {
@@ -84,7 +88,7 @@ const handleImageUrl = async (src: string): Promise<{ blob: Blob; extension: str
   if (!response.ok) throw new Error('Failed to fetch image')
   const blob = await response.blob()
   const extension = blob.type.split(/\/|\+/)[1]
-  return { blob, extension }
+  return { blob, extension: extension ?? '' }
 }
 
 const fetchImageBlob = async (src: string): Promise<{ blob: Blob; extension: string }> => {
@@ -102,7 +106,10 @@ const saveImage = async (blob: Blob, name: string, extension: string): Promise<v
   URL.revokeObjectURL(imageURL)
 }
 
-const downloadImage = async (props: ImageActionProps, options: CustomImageOptions): Promise<void> => {
+const downloadImage = async (
+  props: ImageActionProps,
+  options: CustomImageOptions
+): Promise<void> => {
   const { src, alt } = props
   const potentialName = alt || 'image'
 
@@ -182,7 +189,7 @@ export const Image = TiptapImage.extend<CustomImageOptions>({
   addCommands() {
     return {
       setImages:
-        attrs =>
+        (attrs) =>
         ({ commands }) => {
           const [validImages, errors] = filterFiles(attrs, {
             allowedMimeTypes: this.options.allowedMimeTypes,
@@ -196,7 +203,7 @@ export const Image = TiptapImage.extend<CustomImageOptions>({
 
           if (validImages.length > 0) {
             return commands.insertContent(
-              validImages.map(image => {
+              validImages.map((image) => {
                 if (image.src instanceof File) {
                   const blobUrl = URL.createObjectURL(image.src)
                   const id = randomId()
@@ -230,19 +237,19 @@ export const Image = TiptapImage.extend<CustomImageOptions>({
           return false
         },
 
-      downloadImage: attrs => () => {
+      downloadImage: (attrs) => () => {
         const downloadFunc = this.options.downloadImage || downloadImage
         void downloadFunc({ ...attrs, action: 'download' }, this.options)
         return true
       },
 
-      copyImage: attrs => () => {
+      copyImage: (attrs) => () => {
         const copyImageFunc = this.options.copyImage || copyImage
         void copyImageFunc({ ...attrs, action: 'copyImage' }, this.options)
         return true
       },
 
-      copyLink: attrs => () => {
+      copyLink: (attrs) => () => {
         const copyLinkFunc = this.options.copyLink || copyLink
         void copyLinkFunc({ ...attrs, action: 'copyLink' }, this.options)
         return true
@@ -285,11 +292,11 @@ export const Image = TiptapImage.extend<CustomImageOptions>({
   },
 
   onTransaction({ transaction }) {
-    transaction.steps.forEach(step => {
+    transaction.steps.forEach((step) => {
       if (step instanceof ReplaceStep && step.slice.size === 0) {
         const deletedPages = transaction.before.content.cut(step.from, step.to)
 
-        deletedPages.forEach(node => {
+        deletedPages.forEach((node) => {
           if (node.type.name === 'image') {
             const attrs = node.attrs
 

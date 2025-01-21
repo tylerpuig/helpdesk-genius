@@ -34,7 +34,10 @@ export const getShortcutKey = (key: string): ShortcutKeyResult =>
 
 export const getShortcutKeys = (keys: string[]): ShortcutKeyResult[] => keys.map(getShortcutKey)
 
-export const getOutput = (editor: Editor, format: MinimalTiptapProps['output']): object | string => {
+export const getOutput = (
+  editor: Editor,
+  format: MinimalTiptapProps['output']
+): object | string => {
   switch (format) {
     case 'json':
       return editor.getJSON()
@@ -53,10 +56,16 @@ export const isUrl = (
 
   try {
     const url = new URL(text)
-    const blockedProtocols = ['javascript:', 'file:', 'vbscript:', ...(options.allowBase64 ? [] : ['data:'])]
+    const blockedProtocols = [
+      'javascript:',
+      'file:',
+      'vbscript:',
+      ...(options.allowBase64 ? [] : ['data:'])
+    ]
 
     if (blockedProtocols.includes(url.protocol)) return false
-    if (options.allowBase64 && url.protocol === 'data:') return /^data:image\/[a-z]+;base64,/.test(text)
+    if (options.allowBase64 && url.protocol === 'data:')
+      return /^data:image\/[a-z]+;base64,/.test(text)
     if (url.hostname) return true
 
     return (
@@ -142,7 +151,7 @@ const checkTypeAndSize = (
   { allowedMimeTypes, maxFileSize }: FileValidationOptions
 ): { isValidType: boolean; isValidSize: boolean } => {
   const mimeType = input instanceof File ? input.type : base64MimeType(input)
-  const size = input instanceof File ? input.size : atob(input.split(',')[1]).length
+  const size = input instanceof File ? input.size : atob(input.split(',')[1]!)?.length
 
   const isValidType =
     allowedMimeTypes.length === 0 ||
@@ -156,7 +165,7 @@ const checkTypeAndSize = (
 
 const base64MimeType = (encoded: string): string => {
   const result = encoded.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)
-  return result && result.length > 1 ? result[1] : 'unknown'
+  return (result && result.length > 1 ? result[1] : 'unknown') ?? ''
 }
 
 const isBase64 = (str: string): boolean => {
@@ -176,11 +185,14 @@ const isBase64 = (str: string): boolean => {
   }
 }
 
-export const filterFiles = <T extends FileInput>(files: T[], options: FileValidationOptions): [T[], FileError[]] => {
+export const filterFiles = <T extends FileInput>(
+  files: T[],
+  options: FileValidationOptions
+): [T[], FileError[]] => {
   const validFiles: T[] = []
   const errors: FileError[] = []
 
-  files.forEach(file => {
+  files.forEach((file) => {
     const actualFile = 'src' in file ? file.src : file
 
     if (actualFile instanceof File) {
