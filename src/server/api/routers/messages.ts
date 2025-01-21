@@ -84,7 +84,9 @@ export const messagesRouter = createTRPCRouter({
         .set({ status: input.status })
         .where(eq(schema.threadsTable.id, input.threadId))
 
-      void dbInsertionUtils.incrementUserResolvedThread(ctx.session.user.id)
+      if (input.status === 'closed') {
+        void dbInsertionUtils.incrementUserResolvedThread(ctx.session.user.id)
+      }
 
       return { success: true }
     })
