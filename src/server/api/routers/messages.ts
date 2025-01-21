@@ -66,17 +66,10 @@ export const messagesRouter = createTRPCRouter({
 
       return { success: true }
     }),
-  markThreadAsRead: protectedProcedure
-    .input(z.object({ threadId: z.string() }))
+  updateThreadReadStatus: protectedProcedure
+    .input(z.object({ threadId: z.string(), isUnread: z.boolean() }))
     .mutation(async ({ input }) => {
-      await dbInsertionUtils.updateIsThreadRead(input.threadId, false)
-
-      return { success: true }
-    }),
-  markThreadAsUnread: protectedProcedure
-    .input(z.object({ threadId: z.string() }))
-    .mutation(async ({ input }) => {
-      await dbInsertionUtils.updateIsThreadRead(input.threadId, true)
+      await dbInsertionUtils.updateIsThreadRead(input.threadId, input.isUnread)
 
       return { success: true }
     })

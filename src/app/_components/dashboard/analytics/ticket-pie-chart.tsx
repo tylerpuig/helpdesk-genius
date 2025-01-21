@@ -11,7 +11,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
 
 export function TicketPieChart({ data }: PieChartProps) {
   return (
-    <Card className="col-span-2">
+    <Card className="sm:col-span-4 md:col-span-4 lg:col-span-2">
       <CardHeader>
         <CardTitle>Ticket Types</CardTitle>
       </CardHeader>
@@ -26,12 +26,22 @@ export function TicketPieChart({ data }: PieChartProps) {
               outerRadius={80}
               fill="#8884d8"
               dataKey="value"
+              isAnimationActive={false}
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#8D73E0',
+                border: 'none',
+                borderRadius: '8px',
+                color: 'white'
+              }}
+              // wrapperStyle={{ outline: 'none' }}
+              formatter={(value) => [`${value} tickets`]}
+            />
             <Legend />
           </PieChart>
         </ResponsiveContainer>

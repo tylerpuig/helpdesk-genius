@@ -1,33 +1,14 @@
 'use client'
 import { useRef, useState } from 'react'
-import { addDays } from 'date-fns/addDays'
-import { addHours } from 'date-fns/addHours'
 import { format } from 'date-fns/format'
-import { nextSaturday } from 'date-fns/nextSaturday'
-import {
-  Archive,
-  ArchiveX,
-  Clock,
-  Forward,
-  MoreVertical,
-  Reply,
-  ReplyAll,
-  Trash2,
-  CircleCheck
-} from 'lucide-react'
+import { CircleCheck } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { EmailThread } from '~/app/_components/mail/thread/email-thread'
-import { DropdownMenuContent, DropdownMenuItem } from '~/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
-import { Calendar } from '~/components/ui/calendar'
 import { Label } from '~/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
-import { DropdownMenu, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
 import { Separator } from '~/components/ui/separator'
 import { Switch } from '~/components/ui/switch'
-import { Textarea } from '~/components/ui/textarea'
-import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useMessages } from '~/hooks/context/useMessages'
 import { api } from '~/trpc/react'
 import { type MessageData } from '~/trpc/types'
@@ -37,13 +18,9 @@ import { MinimalTiptapEditor } from '~/app/_components/minimal-tiptap'
 import MessageUtilities from './message-utilities'
 
 export function EmailMessagesDisplay() {
-  const today = new Date()
   const { messages, selectedThreadId, refetchThreads, refetchMessages, threads } = useMessages()
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const [replyContent, setReplyContent] = useState<Content>('')
-  const viewingThread = selectedThreadId
-    ? threads.find((item) => item.thread.id === selectedThreadId)
-    : null
 
   const lastMessage = messages ? messages.at(-1) : null
   const lastMessageIsCustomer = lastMessage?.role === 'customer'
@@ -121,11 +98,6 @@ export function EmailMessagesDisplay() {
                     editable={true}
                     editorClassName="focus:outline-none"
                   />
-                  {/* <Textarea
-                    ref={messageInputRef}
-                    className="h-32 p-2 !text-lg"
-                    placeholder={`${lastMessageIsCustomer ? `Reply to ${lastMessage?.senderName}` : 'Follow up'}...`}
-                  /> */}
                   <div className="flex items-center">
                     <Label htmlFor="mute" className="flex items-center gap-2 text-xs font-normal">
                       <Switch id="mute" aria-label="Mute thread" /> Mute this thread

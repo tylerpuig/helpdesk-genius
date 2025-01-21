@@ -10,21 +10,14 @@ import {
   MoreVertical,
   Reply,
   ReplyAll,
-  Trash2,
-  CircleCheck
+  Trash2
 } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
-import { EmailThread } from '~/app/_components/mail/thread/email-thread'
 import { DropdownMenuContent, DropdownMenuItem } from '~/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Calendar } from '~/components/ui/calendar'
-import { Label } from '~/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { DropdownMenu, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
 import { Separator } from '~/components/ui/separator'
-import { Switch } from '~/components/ui/switch'
-import { Textarea } from '~/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useMessages } from '~/hooks/context/useMessages'
 import { api } from '~/trpc/react'
@@ -37,7 +30,9 @@ export default function MessageUtilities() {
     ? threads.find((item) => item.thread.id === selectedThreadId)
     : null
 
-  const markThreadAsUnread = api.messages.markThreadAsUnread.useMutation({
+  const threadIsUnread = viewingThread?.thread.isUnread
+
+  const markThreadAsUnread = api.messages.updateThreadReadStatus.useMutation({
     onSuccess: () => {
       refetchThreads()
     }
@@ -162,7 +157,11 @@ export default function MessageUtilities() {
           <DropdownMenuItem
             onClick={() => {
               if (!selectedThreadId) return
-              markThreadAsUnread.mutate({ threadId: selectedThreadId })
+              if (!threadIsUnread) {
+                markThreadAsUnread.mutate({ threadId: selectedThreadId, isUnread: true })
+              } else {
+                markThreadAsUnread.mutate({ threadId: selectedThreadId, isUnread: false })
+              }
             }}
           >
             {viewingThread?.thread.isUnread ? 'Mark as read' : 'Mark as unread'}
