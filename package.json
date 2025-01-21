@@ -17,6 +17,7 @@
     "lint:fix": "next lint --fix",
     "preview": "next build && next start",
     "start": "next start",
+    "start:pm2": "next start -p 3002",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

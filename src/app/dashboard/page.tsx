@@ -3,7 +3,7 @@ import { StatCard } from '~/app/_components/dashboard/analytics/ticket-stat-card
 import { TicketLineChart } from '~/app/_components/dashboard/analytics/tickets-line-chart'
 import { TicketPieChart } from '~/app/_components/dashboard/analytics/ticket-pie-chart'
 import { TicketTable } from '~/app/_components/dashboard/analytics/ticket-table'
-import { ticketData, ticketTypes, latestTickets } from '~/app/_components/dashboard/analytics/data'
+import { ticketTypes } from '~/app/_components/dashboard/analytics/data'
 import { api } from '~/trpc/react'
 
 export default function Page() {
@@ -46,7 +46,7 @@ function Dashboard() {
         <TicketLineChart />
         <TicketPieChart data={ticketTypes} />
       </div>
-      <TicketTable tickets={latestTickets} />
+      <TicketTable />
     </div>
   )
 }
