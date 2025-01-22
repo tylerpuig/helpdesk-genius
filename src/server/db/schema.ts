@@ -246,6 +246,86 @@ export const userStatsTable = pgTable('user_stats', {
     .notNull()
 })
 
+export const teamsTable = pgTable(
+  'team',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date()),
+    // Optional fields that might be useful
+    logo: varchar('logo', { length: 255 }),
+    description: text('description')
+  },
+  (team) => [uniqueIndex('team_slug_idx').on(team.slug)]
+)
+
+export const teamMembersTable = pgTable(
+  'team_member',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    teamId: varchar('team_id', { length: 255 })
+      .notNull()
+      .references(() => teamsTable.id),
+    userId: varchar('user_id', { length: 255 })
+      .notNull()
+      .references(() => users.id),
+    role: varchar('role', { length: 50 }).notNull().default('member').$type<DBTypes.TeamRole>(),
+    joinedAt: timestamp('joined_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (member) => [
+    // Make the combination of teamId and userId unique
+    uniqueIndex('team_member_team_user_idx').on(member.teamId, member.userId),
+    index('team_member_team_idx').on(member.teamId),
+    index('team_member_user_idx').on(member.userId)
+  ]
+)
+
+export const teamInvitationsTable = pgTable(
+  'team_invitation',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    teamId: varchar('team_id', { length: 255 })
+      .notNull()
+      .references(() => teamsTable.id),
+    email: varchar('email', { length: 255 }).notNull(),
+    role: varchar('role', { length: 50 }).notNull().default('member').$type<DBTypes.TeamRole>(),
+    status: varchar('status', { length: 50 })
+      .notNull()
+      .default('pending')
+      .$type<DBTypes.TeamInvitationStatus>(),
+    invitedBy: varchar('invited_by', { length: 255 })
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    // The user who accepted the invitation (if they're already registered)
+    acceptedBy: varchar('accepted_by', { length: 255 }).references(() => users.id)
+  },
+  (invitation) => [
+    index('team_invitation_team_idx').on(invitation.teamId),
+    index('team_invitation_email_idx').on(invitation.email),
+    index('team_invitation_status_idx').on(invitation.status)
+  ]
+)
+
 // Add relations
 export const userDailyMetricsRelations = relations(userDailyMetricsTable, ({ one }) => ({
   user: one(users, { fields: [userDailyMetricsTable.userId], references: [users.id] })
@@ -256,7 +336,10 @@ export const userStatsRelations = relations(userStatsTable, ({ one }) => ({
 }))
 
 export const usersRelations = relations(users, ({ many }) => ({
-  accounts: many(accounts)
+  accounts: many(accounts),
+  teamMemberships: many(teamMembersTable),
+  teamInvitationsSent: many(teamInvitationsTable, { relationName: 'inviter' }),
+  teamInvitationsAccepted: many(teamInvitationsTable, { relationName: 'acceptedByUser' })
 }))
 
 export const threadsRelations = relations(threadsTable, ({ many }) => ({
@@ -278,4 +361,20 @@ export const messagesRelations = relations(messagesTable, ({ one }) => ({
 
 export const contactsRelations = relations(contacts, ({ many }) => ({
   messages: many(messagesTable)
+}))
+
+export const teamsRelations = relations(teamsTable, ({ many }) => ({
+  members: many(teamMembersTable),
+  invitations: many(teamInvitationsTable)
+}))
+
+export const teamMembersRelations = relations(teamMembersTable, ({ one }) => ({
+  team: one(teamsTable, { fields: [teamMembersTable.teamId], references: [teamsTable.id] }),
+  user: one(users, { fields: [teamMembersTable.userId], references: [users.id] })
+}))
+
+export const teamInvitationsRelations = relations(teamInvitationsTable, ({ one }) => ({
+  team: one(teamsTable, { fields: [teamInvitationsTable.teamId], references: [teamsTable.id] }),
+  inviter: one(users, { fields: [teamInvitationsTable.invitedBy], references: [users.id] }),
+  acceptedByUser: one(users, { fields: [teamInvitationsTable.acceptedBy], references: [users.id] })
 }))

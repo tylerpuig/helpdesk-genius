@@ -40,6 +40,38 @@ CREATE TABLE "session" (
 	"expires" timestamp with time zone NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "team_invitation" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"team_id" varchar(255) NOT NULL,
+	"email" varchar(255) NOT NULL,
+	"role" varchar(50) DEFAULT 'member' NOT NULL,
+	"status" varchar(50) DEFAULT 'pending' NOT NULL,
+	"invited_by" varchar(255) NOT NULL,
+	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"accepted_at" timestamp with time zone,
+	"accepted_by" varchar(255)
+);
+--> statement-breakpoint
+CREATE TABLE "team_member" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"team_id" varchar(255) NOT NULL,
+	"user_id" varchar(255) NOT NULL,
+	"role" varchar(50) DEFAULT 'member' NOT NULL,
+	"joined_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "team" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"name" varchar(255) NOT NULL,
+	"slug" varchar(255) NOT NULL,
+	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	"updated_at" timestamp with time zone,
+	"logo" varchar(255),
+	"description" text,
+	CONSTRAINT "team_slug_unique" UNIQUE("slug")
+);
+--> statement-breakpoint
 CREATE TABLE "thread_assignment" (
 	"thread_id" varchar(255) NOT NULL,
 	"user_id" varchar(255) NOT NULL,
@@ -106,6 +138,11 @@ CREATE TABLE "verification_token" (
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "message" ADD CONSTRAINT "message_thread_id_thread_id_fk" FOREIGN KEY ("thread_id") REFERENCES "public"."thread"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "team_invitation" ADD CONSTRAINT "team_invitation_team_id_team_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."team"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "team_invitation" ADD CONSTRAINT "team_invitation_invited_by_user_id_fk" FOREIGN KEY ("invited_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "team_invitation" ADD CONSTRAINT "team_invitation_accepted_by_user_id_fk" FOREIGN KEY ("accepted_by") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "team_member" ADD CONSTRAINT "team_member_team_id_team_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."team"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "team_member" ADD CONSTRAINT "team_member_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "thread_assignment" ADD CONSTRAINT "thread_assignment_thread_id_thread_id_fk" FOREIGN KEY ("thread_id") REFERENCES "public"."thread"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "thread_assignment" ADD CONSTRAINT "thread_assignment_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_daily_metrics" ADD CONSTRAINT "user_daily_metrics_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -115,6 +152,13 @@ CREATE INDEX "contact_email_idx" ON "contact" USING btree ("email");--> statemen
 CREATE INDEX "message_thread_id_idx" ON "message" USING btree ("thread_id");--> statement-breakpoint
 CREATE INDEX "message_created_at_idx" ON "message" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "session_user_id_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "team_invitation_team_idx" ON "team_invitation" USING btree ("team_id");--> statement-breakpoint
+CREATE INDEX "team_invitation_email_idx" ON "team_invitation" USING btree ("email");--> statement-breakpoint
+CREATE INDEX "team_invitation_status_idx" ON "team_invitation" USING btree ("status");--> statement-breakpoint
+CREATE UNIQUE INDEX "team_member_team_user_idx" ON "team_member" USING btree ("team_id","user_id");--> statement-breakpoint
+CREATE INDEX "team_member_team_idx" ON "team_member" USING btree ("team_id");--> statement-breakpoint
+CREATE INDEX "team_member_user_idx" ON "team_member" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "team_slug_idx" ON "team" USING btree ("slug");--> statement-breakpoint
 CREATE INDEX "thread_assignment_thread_idx" ON "thread_assignment" USING btree ("thread_id");--> statement-breakpoint
 CREATE INDEX "thread_assignment_user_idx" ON "thread_assignment" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "thread_status_idx" ON "thread" USING btree ("status");--> statement-breakpoint
