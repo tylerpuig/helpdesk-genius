@@ -1,6 +1,7 @@
 import { eq, sql, and, gte, lte, count, desc } from 'drizzle-orm'
 import * as schema from '~/server/db/schema'
 import { db } from '~/server/db'
+import { type TeamRole } from '~/server/db/types'
 
 type TicketMetricsForDateRange = {
   avgResponseTimeHours: number
@@ -147,4 +148,38 @@ export async function getUserByEmail(email: string) {
     console.error(err)
     return null
   }
+}
+type IsUserTeamMemberResponse = {
+  isTeamMember: boolean
+  role: TeamRole
+}
+
+export async function isUserTeamMember(
+  userId: string,
+  teamId: string
+): Promise<IsUserTeamMemberResponse> {
+  const result: IsUserTeamMemberResponse = {
+    isTeamMember: false,
+    role: 'member'
+  }
+  try {
+    const teamMember = await db.query.teamMembersTable.findFirst({
+      where: and(
+        eq(schema.teamMembersTable.teamId, teamId),
+        eq(schema.teamMembersTable.userId, userId)
+      ),
+      columns: {
+        role: true
+      }
+    })
+
+    if (teamMember) {
+      result.isTeamMember = true
+      result.role = teamMember.role
+    }
+  } catch (err) {
+    console.error(err)
+  }
+
+  return result
 }

@@ -91,6 +91,14 @@ export const teamsRouter = createTRPCRouter({
   getTeamMembers: protectedProcedure
     .input(z.object({ teamId: z.string() }))
     .query(async ({ ctx, input }) => {
+      const isTeamMember = await dbQueryUtils.isUserTeamMember(ctx.session.user.id, input.teamId)
+
+      if (!isTeamMember.isTeamMember) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'You do not have permission to view this team'
+        })
+      }
       const teamMembers = await ctx.db
         .select({
           team: {
@@ -125,6 +133,15 @@ export const teamsRouter = createTRPCRouter({
   getTeamInvitations: protectedProcedure
     .input(z.object({ teamId: z.string() }))
     .query(async ({ ctx, input }) => {
+      const isTeamMember = await dbQueryUtils.isUserTeamMember(ctx.session.user.id, input.teamId)
+
+      if (!isTeamMember.isTeamMember) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'You do not have permission to view this team'
+        })
+      }
+
       const teamInvitations = await ctx.db
         .select({
           id: schema.teamInvitationsTable.id,
@@ -147,20 +164,12 @@ export const teamsRouter = createTRPCRouter({
   deleteTeamInvitation: protectedProcedure
     .input(z.object({ teamId: z.string(), invitationId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const teamMember = await ctx.db.query.teamMembersTable.findFirst({
-        where: and(
-          eq(schema.teamMembersTable.teamId, input.teamId),
-          eq(schema.teamMembersTable.userId, ctx.session.user.id)
-        ),
-        columns: {
-          role: true
-        }
-      })
+      const isTeamMember = await dbQueryUtils.isUserTeamMember(ctx.session.user.id, input.teamId)
 
-      if (teamMember?.role === 'member') {
+      if (!isTeamMember.isTeamMember || isTeamMember.role === 'member') {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
-          message: 'You do not have permission to delete this invitation'
+          message: 'You do not have permission to view this team'
         })
       }
 
@@ -171,6 +180,14 @@ export const teamsRouter = createTRPCRouter({
   deleteTeamMember: protectedProcedure
     .input(z.object({ teamId: z.string(), userId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const isTeamMember = await dbQueryUtils.isUserTeamMember(ctx.session.user.id, input.teamId)
+
+      if (!isTeamMember.isTeamMember || isTeamMember.role === 'member') {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'You do not have permission to view this team'
+        })
+      }
       const [userInfo] = await ctx.db
         .select({
           id: schema.users.id,

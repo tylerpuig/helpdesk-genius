@@ -150,9 +150,17 @@ function AddUserDialog({
     role: 'member'
   })
 
+  const { refetch: refetchTeamInvitations } = api.teams.getTeamInvitations.useQuery(
+    {
+      teamId: selectedTeamId
+    },
+    { enabled: false }
+  )
+
   const inviteUser = api.teams.inviteUser.useMutation({
     onSettled: () => {
       setIsAddDialogOpen(false)
+      refetchTeamInvitations()
     }
   })
 
