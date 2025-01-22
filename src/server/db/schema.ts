@@ -91,16 +91,18 @@ export const verificationTokens = pgTable(
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })]
 )
 
-export const contacts = pgTable(
+export const contactsTable = pgTable(
   'contact',
   {
     id: varchar('id', { length: 255 })
       .notNull()
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    email: varchar('email', { length: 255 }).notNull().unique(),
+    workspaceId: varchar('workspace_id', { length: 255 })
+      .notNull()
+      .references(() => workspacesTable.id),
+    email: varchar('email', { length: 255 }).notNull(),
     name: varchar('name', { length: 255 }),
-    // Optional fields that might be useful
     company: varchar('company', { length: 255 }),
     lastContactedAt: timestamp('last_contacted_at', { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -109,7 +111,28 @@ export const contacts = pgTable(
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull()
   },
-  (contact) => [index('contact_email_idx').on(contact.email)]
+  (contact) => [
+    // Make email unique per workspace
+    uniqueIndex('contact_workspace_email_idx').on(contact.workspaceId, contact.email),
+    index('contact_workspace_idx').on(contact.workspaceId),
+    index('contact_email_idx').on(contact.email)
+  ]
+)
+export const workspacesTable = pgTable(
+  'workspace',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date())
+  },
+  (workspace) => [uniqueIndex('workspace_slug_idx').on(workspace.slug)]
 )
 
 export const threadsTable = pgTable(
@@ -128,6 +151,9 @@ export const threadsTable = pgTable(
       .default('low')
       .$type<DBTypes.ThreadPriority>(),
     title: varchar('title', { length: 256 }),
+    workspaceId: varchar('workspace_id', { length: 255 })
+      .notNull()
+      .references(() => workspacesTable.id),
     createdAt: timestamp('created_at', { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -143,6 +169,7 @@ export const threadsTable = pgTable(
     firstResponseTime: integer('first_response_time') // in seconds, null until first response
   },
   (thread) => [
+    index('thread_workspace_idx').on(thread.workspaceId),
     index('thread_status_idx').on(thread.status),
     index('thread_last_message_idx').on(thread.lastMessageAt),
     index('thread_channel_idx').on(thread.channel)
@@ -206,6 +233,9 @@ export const userDailyMetricsTable = pgTable(
     userId: varchar('user_id', { length: 255 })
       .notNull()
       .references(() => users.id),
+    workspaceId: varchar('workspace_id', { length: 255 }) // Add this
+      .notNull()
+      .references(() => workspacesTable.id),
     date: timestamp('date', { withTimezone: true })
       .notNull()
       .default(sql`date_trunc('day', CURRENT_TIMESTAMP)`),
@@ -218,96 +248,94 @@ export const userDailyMetricsTable = pgTable(
     agentMessageCount: integer('agent_message_count').notNull().default(0)
   },
   (metric) => [
-    uniqueIndex('user_daily_metrics_user_date_idx').using(
+    // Modify unique index to include workspace
+    uniqueIndex('user_daily_metrics_workspace_user_date_idx').using(
       'btree',
+      metric.workspaceId.asc(),
       metric.userId.asc(),
       metric.date.asc()
     ),
-    // Individual indexes for performance
+    index('user_daily_metrics_workspace_idx').on(metric.workspaceId),
     index('user_daily_metrics_user_idx').on(metric.userId),
     index('user_daily_metrics_date_idx').on(metric.date)
   ]
 )
 
 // For overall user stats (lifetime metrics)
-export const userStatsTable = pgTable('user_stats', {
-  userId: varchar('user_id', { length: 255 })
-    .notNull()
-    .primaryKey()
-    .references(() => users.id),
-  totalThreadsHandled: integer('total_threads_handled').notNull().default(0),
-  totalThreadsResolved: integer('total_threads_resolved').notNull().default(0),
-  averageResponseTime: integer('average_response_time').notNull().default(0),
-  averageFirstResponseTime: integer('average_first_response_time').notNull().default(0),
-  totalCustomerMessages: integer('total_customer_messages').notNull().default(0),
-  totalAgentMessages: integer('total_agent_messages').notNull().default(0),
-  lastActiveAt: timestamp('last_active_at', { withTimezone: true })
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull()
-})
-
-export const teamsTable = pgTable(
-  'team',
+export const userStatsTable = pgTable(
+  'user_stats',
   {
-    id: varchar('id', { length: 255 })
-      .notNull()
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    name: varchar('name', { length: 255 }).notNull(),
-    slug: varchar('slug', { length: 255 }).notNull().unique(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date()),
-    // Optional fields that might be useful
-    logo: varchar('logo', { length: 255 }),
-    description: text('description')
-  },
-  (team) => [uniqueIndex('team_slug_idx').on(team.slug)]
-)
-
-export const teamMembersTable = pgTable(
-  'team_member',
-  {
-    id: varchar('id', { length: 255 })
-      .notNull()
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    teamId: varchar('team_id', { length: 255 })
-      .notNull()
-      .references(() => teamsTable.id),
     userId: varchar('user_id', { length: 255 })
       .notNull()
       .references(() => users.id),
-    role: varchar('role', { length: 50 }).notNull().default('member').$type<DBTypes.TeamRole>(),
+    workspaceId: varchar('workspace_id', { length: 255 }) // Add this
+      .notNull()
+      .references(() => workspacesTable.id),
+    totalThreadsHandled: integer('total_threads_handled').notNull().default(0),
+    totalThreadsResolved: integer('total_threads_resolved').notNull().default(0),
+    averageResponseTime: integer('average_response_time').notNull().default(0),
+    averageFirstResponseTime: integer('average_first_response_time').notNull().default(0),
+    totalCustomerMessages: integer('total_customer_messages').notNull().default(0),
+    totalAgentMessages: integer('total_agent_messages').notNull().default(0),
+    lastActiveAt: timestamp('last_active_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (stats) => [
+    // Make the combination of userId and workspaceId the primary key
+    primaryKey({ columns: [stats.userId, stats.workspaceId] }),
+    index('user_stats_workspace_idx').on(stats.workspaceId)
+  ]
+)
+
+export const workspaceMembersTable = pgTable(
+  'workspace_member',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    workspaceId: varchar('workspace_id', { length: 255 })
+      .notNull()
+      .references(() => workspacesTable.id),
+    userId: varchar('user_id', { length: 255 })
+      .notNull()
+      .references(() => users.id),
+    role: varchar('role', { length: 50 })
+      .notNull()
+      .default('member')
+      .$type<DBTypes.WorkspaceRole>(),
     joinedAt: timestamp('joined_at', { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull()
   },
   (member) => [
-    // Make the combination of teamId and userId unique
-    uniqueIndex('team_member_team_user_idx').on(member.teamId, member.userId),
-    index('team_member_team_idx').on(member.teamId),
-    index('team_member_user_idx').on(member.userId)
+    uniqueIndex('workspace_member_workspace_user_idx').on(member.workspaceId, member.userId),
+    index('workspace_member_workspace_idx').on(member.workspaceId),
+    index('workspace_member_user_idx').on(member.userId)
   ]
 )
 
-export const teamInvitationsTable = pgTable(
-  'team_invitation',
+// Workspace invitations
+export const workspaceInvitationsTable = pgTable(
+  'workspace_invitation',
   {
     id: varchar('id', { length: 255 })
       .notNull()
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    teamId: varchar('team_id', { length: 255 })
+    workspaceId: varchar('workspace_id', { length: 255 })
       .notNull()
-      .references(() => teamsTable.id),
+      .references(() => workspacesTable.id),
     email: varchar('email', { length: 255 }).notNull(),
-    role: varchar('role', { length: 50 }).notNull().default('member').$type<DBTypes.TeamRole>(),
+    role: varchar('role', { length: 50 })
+      .notNull()
+      .default('member')
+      .$type<DBTypes.WorkspaceRole>(),
     status: varchar('status', { length: 50 })
       .notNull()
       .default('pending')
-      .$type<DBTypes.TeamInvitationStatus>(),
+      .$type<DBTypes.WorkspaceInvitationStatus>(),
     invitedBy: varchar('invited_by', { length: 255 })
       .notNull()
       .references(() => users.id),
@@ -316,35 +344,76 @@ export const teamInvitationsTable = pgTable(
       .notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     acceptedAt: timestamp('accepted_at', { withTimezone: true }),
-    // The user who accepted the invitation (if they're already registered)
     acceptedBy: varchar('accepted_by', { length: 255 }).references(() => users.id)
   },
   (invitation) => [
-    index('team_invitation_team_idx').on(invitation.teamId),
-    index('team_invitation_email_idx').on(invitation.email),
-    index('team_invitation_status_idx').on(invitation.status)
+    index('workspace_invitation_workspace_idx').on(invitation.workspaceId),
+    index('workspace_invitation_email_idx').on(invitation.email),
+    index('workspace_invitation_status_idx').on(invitation.status)
   ]
 )
 
-// Add relations
 export const userDailyMetricsRelations = relations(userDailyMetricsTable, ({ one }) => ({
-  user: one(users, { fields: [userDailyMetricsTable.userId], references: [users.id] })
+  user: one(users, { fields: [userDailyMetricsTable.userId], references: [users.id] }),
+  workspace: one(workspacesTable, {
+    fields: [userDailyMetricsTable.workspaceId],
+    references: [workspacesTable.id]
+  })
 }))
 
 export const userStatsRelations = relations(userStatsTable, ({ one }) => ({
-  user: one(users, { fields: [userStatsTable.userId], references: [users.id] })
+  user: one(users, { fields: [userStatsTable.userId], references: [users.id] }),
+  workspace: one(workspacesTable, {
+    fields: [userStatsTable.workspaceId],
+    references: [workspacesTable.id]
+  })
 }))
-
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
-  teamMemberships: many(teamMembersTable),
-  teamInvitationsSent: many(teamInvitationsTable, { relationName: 'inviter' }),
-  teamInvitationsAccepted: many(teamInvitationsTable, { relationName: 'acceptedByUser' })
+  workspaceMemberships: many(workspaceMembersTable),
+  workspaceInvitationsSent: many(workspaceInvitationsTable, { relationName: 'inviter' }),
+  workspaceInvitationsAccepted: many(workspaceInvitationsTable, { relationName: 'acceptedByUser' })
 }))
 
-export const threadsRelations = relations(threadsTable, ({ many }) => ({
+export const workspacesRelations = relations(workspacesTable, ({ many }) => ({
+  threads: many(threadsTable),
+  members: many(workspaceMembersTable),
+  invitations: many(workspaceInvitationsTable),
+  userDailyMetrics: many(userDailyMetricsTable),
+  userStats: many(userStatsTable),
+  contacts: many(contactsTable)
+}))
+
+export const workspaceMembersRelations = relations(workspaceMembersTable, ({ one }) => ({
+  workspace: one(workspacesTable, {
+    fields: [workspaceMembersTable.workspaceId],
+    references: [workspacesTable.id]
+  }),
+  user: one(users, { fields: [workspaceMembersTable.userId], references: [users.id] })
+}))
+
+export const threadsRelations = relations(threadsTable, ({ one, many }) => ({
+  workspace: one(workspacesTable, {
+    fields: [threadsTable.workspaceId],
+    references: [workspacesTable.id]
+  }),
   messages: many(messagesTable),
   assignments: many(threadAssignmentsTable)
+}))
+
+export const workspaceInvitationsRelations = relations(workspaceInvitationsTable, ({ one }) => ({
+  workspace: one(workspacesTable, {
+    fields: [workspaceInvitationsTable.workspaceId],
+    references: [workspacesTable.id]
+  }),
+  inviter: one(users, {
+    fields: [workspaceInvitationsTable.invitedBy],
+    references: [users.id]
+  }),
+  acceptedByUser: one(users, {
+    fields: [workspaceInvitationsTable.acceptedBy],
+    references: [users.id]
+  })
 }))
 
 export const threadAssignmentsRelations = relations(threadAssignmentsTable, ({ one }) => ({
@@ -359,22 +428,10 @@ export const messagesRelations = relations(messagesTable, ({ one }) => ({
   thread: one(threadsTable, { fields: [messagesTable.threadId], references: [threadsTable.id] })
 }))
 
-export const contactsRelations = relations(contacts, ({ many }) => ({
+export const contactsRelations = relations(contactsTable, ({ one, many }) => ({
+  workspace: one(workspacesTable, {
+    fields: [contactsTable.workspaceId],
+    references: [workspacesTable.id]
+  }),
   messages: many(messagesTable)
-}))
-
-export const teamsRelations = relations(teamsTable, ({ many }) => ({
-  members: many(teamMembersTable),
-  invitations: many(teamInvitationsTable)
-}))
-
-export const teamMembersRelations = relations(teamMembersTable, ({ one }) => ({
-  team: one(teamsTable, { fields: [teamMembersTable.teamId], references: [teamsTable.id] }),
-  user: one(users, { fields: [teamMembersTable.userId], references: [users.id] })
-}))
-
-export const teamInvitationsRelations = relations(teamInvitationsTable, ({ one }) => ({
-  team: one(teamsTable, { fields: [teamInvitationsTable.teamId], references: [teamsTable.id] }),
-  inviter: one(users, { fields: [teamInvitationsTable.invitedBy], references: [users.id] }),
-  acceptedByUser: one(users, { fields: [teamInvitationsTable.acceptedBy], references: [users.id] })
 }))
