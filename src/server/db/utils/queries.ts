@@ -1,7 +1,7 @@
 import { eq, sql, and, gte, lte, count, desc } from 'drizzle-orm'
 import * as schema from '~/server/db/schema'
 import { db } from '~/server/db'
-import { type TeamRole } from '~/server/db/types'
+import { type WorkspaceRole } from '~/server/db/types'
 
 type TicketMetricsForDateRange = {
   avgResponseTimeHours: number
@@ -150,23 +150,23 @@ export async function getUserByEmail(email: string) {
   }
 }
 type IsUserTeamMemberResponse = {
-  isTeamMember: boolean
-  role: TeamRole
+  isMember: boolean
+  role: WorkspaceRole
 }
 
-export async function isUserTeamMember(
+export async function isUserWorkspaceMember(
   userId: string,
   teamId: string
 ): Promise<IsUserTeamMemberResponse> {
   const result: IsUserTeamMemberResponse = {
-    isTeamMember: false,
+    isMember: false,
     role: 'member'
   }
   try {
-    const teamMember = await db.query.teamMembersTable.findFirst({
+    const teamMember = await db.query.workspaceMembersTable.findFirst({
       where: and(
-        eq(schema.teamMembersTable.teamId, teamId),
-        eq(schema.teamMembersTable.userId, userId)
+        eq(schema.workspaceMembersTable.workspaceId, teamId),
+        eq(schema.workspaceMembersTable.userId, userId)
       ),
       columns: {
         role: true
@@ -174,7 +174,7 @@ export async function isUserTeamMember(
     })
 
     if (teamMember) {
-      result.isTeamMember = true
+      result.isMember = true
       result.role = teamMember.role
     }
   } catch (err) {

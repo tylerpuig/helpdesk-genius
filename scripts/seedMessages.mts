@@ -16,6 +16,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
 
+const WORKSPACE_ID = 'e3146484-79bc-40b0-87ce-e58e108608c0'
+
 const sampleCustomers = [
   { name: 'John Smith', email: 'john.smith@example.com', company: 'TechCorp' },
   { name: 'Sarah Johnson', email: 'sarah.j@example.com', company: 'InnovateCo' },
@@ -38,11 +40,12 @@ async function createContacts() {
 async function createContact(customer: (typeof sampleCustomers)[0]) {
   try {
     const [contact] = await db
-      .insert(schema.contacts)
+      .insert(schema.contactsTable)
       .values({
         name: customer.name,
         email: customer.email,
-        company: customer.company
+        company: customer.company,
+        workspaceId: WORKSPACE_ID
       })
       .returning()
       .onConflictDoNothing()
@@ -53,7 +56,9 @@ async function createContact(customer: (typeof sampleCustomers)[0]) {
   }
 }
 
-async function generateConversationWithFollowups(contact: typeof schema.contacts.$inferSelect) {
+async function generateConversationWithFollowups(
+  contact: typeof schema.contactsTable.$inferSelect
+) {
   const topic = topics[Math.floor(Math.random() * topics.length)]
 
   // Create thread
@@ -63,7 +68,8 @@ async function generateConversationWithFollowups(contact: typeof schema.contacts
       title: `${contact.name} - ${topic}`,
       status: 'open',
       priority: Math.random() > 0.7 ? 'high' : 'low',
-      channel: 'email'
+      channel: 'email',
+      workspaceId: WORKSPACE_ID
     })
     .returning()
 
@@ -166,18 +172,17 @@ async function seedDatabase() {
 // seedDatabase()
 async function getAllContacts() {
   try {
-    const contacts = await db.select().from(schema.contacts)
+    const contacts = await db.select().from(schema.contactsTable)
     return contacts
   } catch (error) {
     console.error('getAllContact', error)
   }
 }
 
-// generateNewThreads(3)
+generateNewThreads(1)
 
-async function generateNewThreads(amount: number, iterations: number = amount) {
+async function generateNewThreads(amount: number) {
   try {
-    let iterations: number = amount
     let currentContacts = await getAllContacts()
     if (!currentContacts?.length) {
       await createContacts()
@@ -189,58 +194,67 @@ async function generateNewThreads(amount: number, iterations: number = amount) {
       return
     }
 
-    for (const randomContact of currentContacts) {
-      if (!iterations) break
+    for (let i = 0; i < amount; i++) {
+      for (const randomContact of currentContacts) {
+        const topic = topics[Math.floor(Math.random() * topics.length)]
+        // const randomContact = currentContacts[Math.floor(Math.random() * currentContacts.length)]
 
-      const topic = topics[Math.floor(Math.random() * topics.length)]
-      // const randomContact = currentContacts[Math.floor(Math.random() * currentContacts.length)]
+        const randomDate = new Date()
+        const randInt = Math.floor(Math.random() * 7)
+        randomDate.setDate(randomDate.getDate() - randInt)
 
-      // Create thread
-      const [thread] = await db
-        .insert(schema.threadsTable)
-        .values({
-          title: `${randomContact.name} - ${topic}`,
-          status: 'open',
-          priority: Math.random() > 0.7 ? 'high' : 'low',
-          channel: 'email'
+        // Create thread
+        const [thread] = await db
+          .insert(schema.threadsTable)
+          .values({
+            title: `${randomContact.name} - ${topic}`,
+            status: 'open',
+            priority: Math.random() > 0.7 ? 'high' : 'low',
+            channel: 'email',
+            createdAt: randomDate,
+            workspaceId: WORKSPACE_ID
+          })
+          .returning()
+
+        // Generate initial customer message using OpenAI
+        const newMessage = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a customer writing an initial email about a specific topic. Write a realistic, brief email. Don't include any placeholders, instead you can come up with a fake signature.`
+            },
+            {
+              role: 'user',
+              content: `Write an initial email about: ${topic}
+            
+            Your name: ${randomContact.name}
+            Your email: ${randomContact.email}
+            Your company: ${randomContact.company}
+            `
+            }
+          ]
         })
-        .returning()
 
-      // Generate initial customer message using OpenAI
-      const newMessage = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a customer writing an initial email about a specific topic. Write a realistic, brief email. Don't include any placeholders, instead you can come up with a fake signature.`
-          },
-          {
-            role: 'user',
-            content: `Write an initial email about: ${topic}`
-          }
-        ]
-      })
+        console.log(newMessage.choices[0].message.content)
 
-      console.log(newMessage.choices[0].message.content)
+        // const messageDate = new Date()
+        // Save the customer's message
+        await db.insert(schema.messagesTable).values({
+          threadId: thread.id,
+          content: newMessage.choices[0].message.content ?? '',
+          senderEmail: randomContact.email,
+          senderName: randomContact.name,
+          role: 'customer',
+          createdAt: randomDate
+        })
 
-      const messageDate = new Date()
-      // Save the customer's message
-      await db.insert(schema.messagesTable).values({
-        threadId: thread.id,
-        content: newMessage.choices[0].message.content ?? '',
-        senderEmail: randomContact.email,
-        senderName: randomContact.name,
-        role: 'customer',
-        createdAt: messageDate
-      })
-
-      // update the thread with the latest message date
-      await db
-        .update(schema.threadsTable)
-        .set({ lastMessageAt: messageDate })
-        .where(eq(schema.threadsTable.id, thread.id))
-
-      iterations--
+        // update the thread with the latest message date
+        await db
+          .update(schema.threadsTable)
+          .set({ lastMessageAt: randomDate })
+          .where(eq(schema.threadsTable.id, thread.id))
+      }
     }
   } catch (error) {
     console.error('generateNewThreads', error)

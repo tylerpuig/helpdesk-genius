@@ -7,7 +7,7 @@ import { threadStatusSchema } from '~/server/db/types'
 
 export const messagesRouter = createTRPCRouter({
   viewEmailMessageThreads: protectedProcedure
-    .input(z.object({ status: threadStatusSchema }))
+    .input(z.object({ status: threadStatusSchema, workspaceId: z.string() }))
     .query(async ({ ctx, input }) => {
       const threads = await ctx.db
         .select({
@@ -38,7 +38,12 @@ export const messagesRouter = createTRPCRouter({
             eq(schema.messagesTable.createdAt, schema.threadsTable.lastMessageAt)
           )
         )
-        .where(eq(schema.threadsTable.status, input.status))
+        .where(
+          and(
+            eq(schema.threadsTable.status, input.status),
+            eq(schema.threadsTable.workspaceId, input.workspaceId)
+          )
+        )
         .orderBy(desc(schema.threadsTable.lastMessageAt))
 
       return threads
@@ -63,9 +68,14 @@ export const messagesRouter = createTRPCRouter({
       return messages
     }),
   createEmailMessageReply: protectedProcedure
-    .input(z.object({ threadId: z.string(), content: z.string() }))
+    .input(z.object({ threadId: z.string(), workspaceId: z.string(), content: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await dbInsertionUtils.createNewEmailMessageReply(input.threadId, input.content, ctx)
+      await dbInsertionUtils.createNewEmailMessageReply(
+        input.threadId,
+        input.content,
+        ctx,
+        input.workspaceId
+      )
 
       return { success: true }
     }),
