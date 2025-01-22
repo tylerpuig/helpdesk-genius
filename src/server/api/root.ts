@@ -2,6 +2,7 @@ import { createCallerFactory, createTRPCRouter } from '~/server/api/trpc'
 import { messagesRouter } from '~/server/api/routers/messages'
 import { metricsRouter } from '~/server/api/routers/metrics'
 import { authRouter } from '~/server/api/routers/auth'
+import { teamsRouter } from '~/server/api/routers/teams'
 
 /**
  * This is the primary router for your server.
@@ -11,7 +12,8 @@ import { authRouter } from '~/server/api/routers/auth'
 export const appRouter = createTRPCRouter({
   messages: messagesRouter,
   metrics: metricsRouter,
-  auth: authRouter
+  auth: authRouter,
+  teams: teamsRouter
 })
 
 // export type definition of API
