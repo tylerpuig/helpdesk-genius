@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Table,
   TableBody,
@@ -47,16 +47,12 @@ const roleToRenderText: Record<TeamRole, string> = {
 }
 
 export default function UserManagementTable() {
-  const { selectedTeamId, updateSelectedTeamId } = useTeamManagementStore((state) => state)
+  const { selectedTeamId } = useTeamManagementStore((state) => state)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
   const { data: teamMembers, isPending } = api.teams.getTeamMembers.useQuery({
     teamId: selectedTeamId
   })
-
-  //   if (isLoading) {
-  //     return <div>Loading...</div>
-  //   }
 
   return (
     <div className="container mx-auto p-4">
@@ -65,7 +61,7 @@ export default function UserManagementTable() {
         <AddUserDialog isAddDialogOpen={isAddDialogOpen} setIsAddDialogOpen={setIsAddDialogOpen} />
       </div>
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 bg-gray-900">
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
@@ -90,7 +86,7 @@ export default function UserManagementTable() {
           )}
           {teamMembers &&
             teamMembers.map((member) => (
-              <TableRow key={member.team.id}>
+              <TableRow key={member?.invitation?.expiresAt.toString()}>
                 <TableCell>{member.user?.name ?? ''}</TableCell>
                 <TableCell>{member.user?.email ?? ''}</TableCell>
                 <TableCell>{roleToRenderText?.[member?.team?.role] ?? ''}</TableCell>
@@ -126,7 +122,7 @@ export default function UserManagementTable() {
   )
 }
 
-function TeamMemberStatus({ status }: { status: TeamInvitationStatus | undefined }) {
+export function TeamMemberStatus({ status }: { status: TeamInvitationStatus | undefined }) {
   switch (status) {
     case 'pending':
       return <Badge variant="teamMemberPending">Pending</Badge>
@@ -161,7 +157,13 @@ function AddUserDialog({
   })
 
   return (
-    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+    <Dialog
+      open={isAddDialogOpen}
+      onOpenChange={(open) => {
+        if (!open) setNewUser({ email: '', role: 'member' })
+        setIsAddDialogOpen(open)
+      }}
+    >
       <DialogTrigger asChild>
         <Button className="mb-4">Add User</Button>
       </DialogTrigger>

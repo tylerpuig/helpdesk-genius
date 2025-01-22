@@ -121,5 +121,91 @@ export const teamsRouter = createTRPCRouter({
         .where(eq(schema.teamMembersTable.teamId, input.teamId))
 
       return teamMembers
+    }),
+  getTeamInvitations: protectedProcedure
+    .input(z.object({ teamId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const teamInvitations = await ctx.db
+        .select({
+          id: schema.teamInvitationsTable.id,
+          email: schema.teamInvitationsTable.email,
+          role: schema.teamInvitationsTable.role,
+          status: schema.teamInvitationsTable.status,
+          createdAt: schema.teamInvitationsTable.createdAt,
+          expiresAt: schema.teamInvitationsTable.expiresAt
+        })
+        .from(schema.teamInvitationsTable)
+        .where(
+          and(
+            eq(schema.teamInvitationsTable.teamId, input.teamId),
+            eq(schema.teamInvitationsTable.status, 'pending')
+          )
+        )
+
+      return teamInvitations
+    }),
+  deleteTeamInvitation: protectedProcedure
+    .input(z.object({ teamId: z.string(), invitationId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const teamMember = await ctx.db.query.teamMembersTable.findFirst({
+        where: and(
+          eq(schema.teamMembersTable.teamId, input.teamId),
+          eq(schema.teamMembersTable.userId, ctx.session.user.id)
+        ),
+        columns: {
+          role: true
+        }
+      })
+
+      if (teamMember?.role === 'member') {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'You do not have permission to delete this invitation'
+        })
+      }
+
+      await ctx.db
+        .delete(schema.teamInvitationsTable)
+        .where(eq(schema.teamInvitationsTable.id, input.invitationId))
+    }),
+  deleteTeamMember: protectedProcedure
+    .input(z.object({ teamId: z.string(), userId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const [userInfo] = await ctx.db
+        .select({
+          id: schema.users.id,
+          email: schema.users.email
+        })
+        .from(schema.users)
+        .where(eq(schema.users.id, input.userId))
+
+      if (!userInfo) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to delete team member'
+        })
+      }
+
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .delete(schema.teamMembersTable)
+          .where(
+            and(
+              eq(schema.teamMembersTable.teamId, input.teamId),
+              eq(schema.teamMembersTable.userId, input.userId)
+            )
+          )
+
+        // delete team invitations
+        await tx
+          .delete(schema.teamInvitationsTable)
+          .where(
+            and(
+              eq(schema.teamInvitationsTable.teamId, input.teamId),
+              eq(schema.teamInvitationsTable.email, userInfo.email)
+            )
+          )
+      })
+      return { success: true }
     })
 })
