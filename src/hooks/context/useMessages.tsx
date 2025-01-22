@@ -1,7 +1,9 @@
+'use client'
 import { createContext, useState, useContext } from 'react'
 import type { ThreadData, MessageData } from '~/trpc/types'
 import { api } from '~/trpc/react'
 import { type ThreadStatus } from '~/server/db/types'
+import { useWorkspace } from '~/hooks/context/useWorkspaces'
 
 type MessagesContextType = {
   threads: ThreadData[]
@@ -37,6 +39,9 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
   const [selectedThreadStatus, setSelectedThreadStatus] = useState<ThreadStatus>('open')
+  const { selectedWorkspaceId, setSelectedWorkspaceId } = useWorkspace()
+
+  // const createNewWorkspace = api.workspace.createWorkspace.useMutation()
 
   const {
     data: threadsData,
@@ -44,7 +49,8 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
     isLoading: threadsIsLoading,
     refetch: refetchThreadsTrpc
   } = api.messages.viewEmailMessageThreads.useQuery({
-    status: selectedThreadStatus
+    status: selectedThreadStatus,
+    workspaceId: selectedWorkspaceId
   })
 
   const {

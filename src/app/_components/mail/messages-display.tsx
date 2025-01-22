@@ -13,13 +13,15 @@ import { useMessages } from '~/hooks/context/useMessages'
 import { api } from '~/trpc/react'
 import { type MessageData } from '~/trpc/types'
 import { useSession } from 'next-auth/react'
+import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { Content } from '@tiptap/react'
 import { MinimalTiptapEditor } from '~/app/_components/minimal-tiptap'
 import MessageUtilities from './message-utilities'
 import parse from 'html-react-parser'
 
 export function EmailMessagesDisplay() {
-  const { messages, selectedThreadId, refetchThreads, refetchMessages, threads } = useMessages()
+  const { messages, selectedThreadId, refetchMessages } = useMessages()
+  const { selectedWorkspaceId } = useWorkspace()
   const [replyContent, setReplyContent] = useState<Content>('')
 
   const lastMessage = messages ? messages.at(-1) : null
@@ -36,7 +38,8 @@ export function EmailMessagesDisplay() {
     if (replyContent && selectedThreadId) {
       sendMessage.mutate({
         threadId: selectedThreadId,
-        content: replyContent as string
+        content: replyContent as string,
+        workspaceId: selectedWorkspaceId
       })
     }
   }
