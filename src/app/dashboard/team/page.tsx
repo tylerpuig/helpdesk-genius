@@ -9,7 +9,7 @@ import { useTeamManagementStore } from '~/app/_components/team/team-table/useTea
 
 export default function TeamManagementPage() {
   const { selectedTeamId, updateSelectedTeamId } = useTeamManagementStore((state) => state)
-  const { data: userTeams, isPending } = api.teams.getUserTeams.useQuery()
+  const { data: userTeams, isPending } = api.workspace.getUserWorkspaces.useQuery()
 
   useEffect(() => {
     if (userTeams && !selectedTeamId && userTeams?.[0]?.id) {

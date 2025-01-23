@@ -17,29 +17,29 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { MoreVertical, Trash } from 'lucide-react'
 import { api } from '~/trpc/react'
-import { useTeamManagementStore } from './useTeamManagementStore'
-import type { TeamRole } from '~/server/db/types'
+import type { WorkspaceRole } from '~/server/db/types'
 import { Skeleton } from '~/components/ui/skeleton'
 import { TeamMemberStatus } from '~/app/_components/team/team-table/team-table'
+import { useWorkspace } from '~/hooks/context/useWorkspaces'
 
-const roleToRenderText: Record<TeamRole, string> = {
+const roleToRenderText: Record<WorkspaceRole, string> = {
   member: 'Member',
   admin: 'Admin',
   owner: 'Owner'
 }
 
 export default function TeamInvitationsTable() {
-  const { selectedTeamId } = useTeamManagementStore((state) => state)
+  const { selectedWorkspaceId } = useWorkspace()
 
   const {
     data: teamInvitations,
     isPending,
     refetch
-  } = api.teams.getTeamInvitations.useQuery({
-    teamId: selectedTeamId
+  } = api.workspace.getTeamInvitations.useQuery({
+    workspaceId: selectedWorkspaceId
   })
 
-  const deleteTeamInvitation = api.teams.deleteTeamInvitation.useMutation({
+  const deleteTeamInvitation = api.workspace.deleteTeamInvitation.useMutation({
     onSuccess: () => {
       refetch()
     }
@@ -92,7 +92,7 @@ export default function TeamInvitationsTable() {
                       <DropdownMenuItem
                         onClick={() => {
                           deleteTeamInvitation.mutate({
-                            teamId: selectedTeamId,
+                            workspaceId: selectedWorkspaceId,
                             invitationId: invite.id
                           })
                         }}

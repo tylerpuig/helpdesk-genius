@@ -13,7 +13,14 @@ export default function Page() {
 
 function Dashboard() {
   const { selectedWorkspaceId } = useWorkspace()
-  const { data: ticketMetrics, isPending } = api.metrics.getTodayTicketMetrics.useQuery(undefined)
+  const { data: ticketMetrics, isPending } = api.metrics.getTodayTicketMetrics.useQuery(
+    {
+      workspaceId: selectedWorkspaceId
+    },
+    {
+      enabled: selectedWorkspaceId !== ''
+    }
+  )
 
   return (
     <div className="p-8">

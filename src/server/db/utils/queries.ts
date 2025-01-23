@@ -10,6 +10,7 @@ type TicketMetricsForDateRange = {
 }
 
 export async function getMetricsForDateRange(
+  workspaceId: string,
   startDate: Date,
   endDate: Date
 ): Promise<TicketMetricsForDateRange> {
@@ -33,6 +34,7 @@ export async function getMetricsForDateRange(
       .from(schema.userDailyMetricsTable)
       .where(
         and(
+          eq(schema.userDailyMetricsTable.workspaceId, workspaceId),
           gte(schema.userDailyMetricsTable.date, startDate),
           lte(schema.userDailyMetricsTable.date, endDate)
         )
@@ -49,6 +51,7 @@ export async function getMetricsForDateRange(
       .from(schema.threadsTable)
       .where(
         and(
+          eq(schema.threadsTable.workspaceId, workspaceId),
           eq(schema.threadsTable.status, 'open'),
           gte(schema.threadsTable.createdAt, startDate),
           lte(schema.threadsTable.createdAt, endDate)
@@ -64,14 +67,18 @@ export async function getMetricsForDateRange(
   return finalResult
 }
 
-export async function getLast7DaysMetrics() {
+export async function getLast7DaysMetrics(workspaceId: string) {
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  return getMetricsForDateRange(sevenDaysAgo, new Date())
+  return getMetricsForDateRange(workspaceId, sevenDaysAgo, new Date())
 }
 
-export async function getTicketsCreatedOverTimeByDay(startDate: Date, endDate: Date) {
+export async function getTicketsCreatedOverTimeByDay(
+  workSpaceId: string,
+  startDate: Date,
+  endDate: Date
+) {
   try {
     const ticketCounts = await db
       .select({
@@ -82,6 +89,7 @@ export async function getTicketsCreatedOverTimeByDay(startDate: Date, endDate: D
       .from(schema.threadsTable)
       .where(
         and(
+          eq(schema.threadsTable.workspaceId, workSpaceId),
           gte(schema.threadsTable.createdAt, startDate),
           lte(schema.threadsTable.createdAt, endDate)
         )
@@ -102,14 +110,14 @@ export async function getTicketsCreatedOverTimeByDay(startDate: Date, endDate: D
   }
 }
 
-export async function getTicketsCreatedLast7Days() {
+export async function getTicketsCreatedLast7Days(workspaceId: string) {
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  return getTicketsCreatedOverTimeByDay(sevenDaysAgo, new Date())
+  return getTicketsCreatedOverTimeByDay(workspaceId, sevenDaysAgo, new Date())
 }
 
-export async function getRecentTickets() {
+export async function getRecentTickets(workspaceId: string) {
   try {
     const tickets = await db
       .select({
@@ -120,6 +128,7 @@ export async function getRecentTickets() {
         createdAt: schema.threadsTable.createdAt
       })
       .from(schema.threadsTable)
+      .where(eq(schema.threadsTable.workspaceId, workspaceId))
       .orderBy(desc(schema.threadsTable.createdAt))
       .limit(5)
 
