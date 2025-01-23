@@ -4,15 +4,20 @@ import { api } from '~/trpc/react'
 type WorkspaceContextType = {
   selectedWorkspaceId: string
   setSelectedWorkspaceId(id: string): void
+  newWorkspaceDialogOpen: boolean
+  setNewWorkspaceDialogOpen(open: boolean): void
 }
 
 const WorkspacesContext = createContext<WorkspaceContextType>({
   selectedWorkspaceId: '',
-  setSelectedWorkspaceId: () => {}
+  setSelectedWorkspaceId: () => {},
+  newWorkspaceDialogOpen: false,
+  setNewWorkspaceDialogOpen: () => {}
 })
 
 export function WorkspacesProvider({ children }: { children: React.ReactNode }) {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('')
+  const [newWorkspaceDialogOpen, setNewWorkspaceDialogOpen] = useState(false)
   const createNewWorkspace = api.workspace.createWorkspace.useMutation()
 
   const { data: workspacesList, refetch: refetchWorkspaces } =
@@ -39,7 +44,9 @@ export function WorkspacesProvider({ children }: { children: React.ReactNode }) 
     <WorkspacesContext.Provider
       value={{
         selectedWorkspaceId,
-        setSelectedWorkspaceId
+        setSelectedWorkspaceId,
+        newWorkspaceDialogOpen,
+        setNewWorkspaceDialogOpen
       }}
     >
       {children}

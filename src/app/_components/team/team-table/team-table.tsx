@@ -35,9 +35,10 @@ import {
   SelectValue
 } from '~/components/ui/select'
 import { api } from '~/trpc/react'
-import type { WorkspaceRole, WorkspaceInvitationStatus } from '~/server/db/types'
+import { useTeamManagementStore } from './useTeamManagementStore'
 import { Badge } from '~/components/ui/badge'
 import { Skeleton } from '~/components/ui/skeleton'
+import { WorkspaceInvitationStatus, type WorkspaceRole } from '~/server/db/types'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 
 const roleToRenderText: Record<WorkspaceRole, string> = {
@@ -144,7 +145,7 @@ function AddUserDialog({
   isAddDialogOpen: boolean
   setIsAddDialogOpen: (isOpen: boolean) => void
 }) {
-  const { selectedWorkspaceId } = useWorkspace()
+  const { selectedTeamId } = useTeamManagementStore()
   const [newUser, setNewUser] = useState<{ email: string; role: WorkspaceRole }>({
     email: '',
     role: 'member'
@@ -152,7 +153,7 @@ function AddUserDialog({
 
   const { refetch: refetchTeamInvitations } = api.workspace.getTeamInvitations.useQuery(
     {
-      workspaceId: selectedWorkspaceId
+      workspaceId: selectedTeamId
     },
     { enabled: false }
   )
@@ -212,9 +213,9 @@ function AddUserDialog({
           <Button
             className="w-full"
             onClick={() => {
-              if (!selectedWorkspaceId) return
+              if (!selectedTeamId) return
               inviteUser.mutate({
-                workspaceId: selectedWorkspaceId,
+                workspaceId: selectedTeamId,
                 email: newUser.email,
                 role: newUser.role
               })

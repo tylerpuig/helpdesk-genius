@@ -6,9 +6,15 @@ import { TicketTable } from '~/app/_components/dashboard/analytics/ticket-table'
 import { ticketTypes } from '~/app/_components/dashboard/analytics/data'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { api } from '~/trpc/react'
+import { NewWorkspaceDialog } from '~/app/_components/dashboard/workspace-switcher'
 
 export default function Page() {
-  return <Dashboard />
+  return (
+    <>
+      <NewWorkspaceDialog />
+      <Dashboard />
+    </>
+  )
 }
 
 function Dashboard() {

@@ -20,9 +20,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover
 import { DropdownMenu, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
 import { Separator } from '~/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
-import { useMessages } from '~/hooks/context/useMessages'
+import { useThreadStore } from '~/hooks/store/useThread'
 import { api } from '~/trpc/react'
 import { type ThreadStatus } from '~/server/db/types'
+import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { useForwardMessageDialog } from '~/app/_components/mail/utilities/forward-email-message/useForwardMessage'
 
 const updateThreadStatusButtons: Array<{
@@ -60,7 +61,8 @@ const updateThreadStatusButtons: Array<{
 
 export default function MessageUtilities() {
   const today = new Date()
-  const { selectedThreadId, threads, refetchThreads } = useMessages()
+  const { selectedThreadId, threads, threadStatus } = useThreadStore()
+  const { selectedWorkspaceId } = useWorkspace()
   const { open: openForwardMessageDialog } = useForwardMessageDialog()
 
   const viewingThread = selectedThreadId
@@ -69,8 +71,18 @@ export default function MessageUtilities() {
 
   const threadIsUnread = viewingThread?.thread.isUnread
 
+  const { refetch: refetchThreads } = api.messages.viewEmailMessageThreads.useQuery(
+    {
+      status: threadStatus,
+      workspaceId: selectedWorkspaceId
+    },
+    {
+      enabled: false
+    }
+  )
+
   const markThreadAsUnread = api.messages.updateThreadReadStatus.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       refetchThreads()
     }
   })

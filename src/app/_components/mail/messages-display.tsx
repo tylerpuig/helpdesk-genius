@@ -9,7 +9,7 @@ import { Button } from '~/components/ui/button'
 import { Label } from '~/components/ui/label'
 import { Separator } from '~/components/ui/separator'
 import { Switch } from '~/components/ui/switch'
-import { useMessages } from '~/hooks/context/useMessages'
+import { useThreadStore } from '~/hooks/store/useThread'
 import { api } from '~/trpc/react'
 import { type MessageData } from '~/trpc/types'
 import { useSession } from 'next-auth/react'
@@ -20,9 +20,17 @@ import MessageUtilities from './message-utilities'
 import parse from 'html-react-parser'
 
 export function EmailMessagesDisplay() {
-  const { messages, selectedThreadId, refetchMessages } = useMessages()
+  const { selectedThreadId } = useThreadStore()
   const { selectedWorkspaceId } = useWorkspace()
   const [replyContent, setReplyContent] = useState<Content>('')
+
+  const { data: messages, refetch: refetchMessages } =
+    api.messages.getEmailMessagesFromThread.useQuery(
+      { threadId: selectedThreadId ?? '' },
+      {
+        enabled: selectedThreadId !== null
+      }
+    )
 
   const lastMessage = messages ? messages.at(-1) : null
   const lastMessageIsCustomer = lastMessage?.role === 'customer'
@@ -79,10 +87,10 @@ export function EmailMessagesDisplay() {
           </div>
           <Separator />
           <div className="scrollbar-thin flex-1 overflow-y-auto">
-            {/* Added scrollable container */}
-            {messages.length > 1 && (
+            {messages?.length && messages?.length > 1 && (
               <EmailThread messages={lastMessageIsCustomer ? messages.slice(0, -1) : messages} />
             )}
+
             {!lastMessageIsCustomer && <UserHasRepliedAlert latestMessage={lastMessage} />}
             {lastMessageIsCustomer && (
               <div className="whitespace-pre-wrap p-4 text-sm">{parse(lastMessage?.content)}</div>

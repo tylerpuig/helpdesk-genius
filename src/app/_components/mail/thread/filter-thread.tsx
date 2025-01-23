@@ -9,7 +9,7 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Button } from '~/components/ui/button'
 import { Filter } from 'lucide-react'
-import { useMessages } from '~/hooks/context/useMessages'
+import { useThreadStore } from '~/hooks/store/useThread'
 import { type ThreadStatus } from '~/server/db/types'
 
 const threadFilterOptions: Array<{ value: ThreadStatus; label: string }> = [
@@ -21,7 +21,7 @@ const threadFilterOptions: Array<{ value: ThreadStatus; label: string }> = [
 ]
 
 export default function FilterThread() {
-  const { selectedThreadStatus, setSelectedThreadStatus } = useMessages()
+  const { threadStatus, updateThreadStatus } = useThreadStore()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -33,9 +33,9 @@ export default function FilterThread() {
         <DropdownMenuLabel>Filter Threads</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup
-          value={selectedThreadStatus}
+          value={threadStatus}
           onValueChange={(val) => {
-            setSelectedThreadStatus(val as ThreadStatus)
+            updateThreadStatus(val as ThreadStatus)
           }}
         >
           {threadFilterOptions.map((el) => (

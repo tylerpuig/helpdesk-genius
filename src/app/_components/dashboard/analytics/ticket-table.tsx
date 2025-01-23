@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { api } from '~/trpc/react'
 import { Skeleton } from '~/components/ui/skeleton'
-import { useMessages } from '~/hooks/context/useMessages'
+import { useThreadStore } from '~/hooks/store/useThread'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { useRouter } from 'next/navigation'
 
@@ -25,10 +25,10 @@ export function TicketTable() {
       enabled: selectedWorkspaceId !== ''
     }
   )
-  const { setSelectedThreadId } = useMessages()
+  const { updateSelectedThreadId } = useThreadStore()
 
   function handleSelectRow(threadId: string): void {
-    setSelectedThreadId(threadId)
+    updateSelectedThreadId(threadId)
     router.push(`/dashboard/tickets`)
   }
 
@@ -53,7 +53,9 @@ export function TicketTable() {
                 {tickets.map((ticket) => (
                   <TableRow
                     className="cursor-pointer"
-                    onClick={() => handleSelectRow(ticket.id)}
+                    onClick={() => {
+                      handleSelectRow(ticket.id)
+                    }}
                     key={ticket.id}
                   >
                     <TableCell>{ticket.title}</TableCell>

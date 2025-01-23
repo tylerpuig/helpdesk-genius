@@ -42,6 +42,7 @@ export const workspaceRouter = createTRPCRouter({
       .select({
         id: schema.workspacesTable.id,
         name: schema.workspacesTable.name,
+        slug: schema.workspacesTable.slug,
         createdAt: schema.workspacesTable.createdAt,
         role: schema.workspaceMembersTable.role
       })
