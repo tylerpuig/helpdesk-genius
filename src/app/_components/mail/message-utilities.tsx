@@ -61,15 +61,9 @@ const updateThreadStatusButtons: Array<{
 
 export default function MessageUtilities() {
   const today = new Date()
-  const { selectedThreadId, threads, threadStatus } = useThreadStore()
+  const { selectedThreadId, threads, threadStatus, updateSelectedThreadId } = useThreadStore()
   const { selectedWorkspaceId } = useWorkspace()
   const { open: openForwardMessageDialog } = useForwardMessageDialog()
-
-  const viewingThread = selectedThreadId
-    ? threads.find((item) => item.thread.id === selectedThreadId)
-    : null
-
-  const threadIsUnread = viewingThread?.thread.isUnread
 
   const { refetch: refetchThreads } = api.messages.viewEmailMessageThreads.useQuery(
     {
@@ -82,16 +76,27 @@ export default function MessageUtilities() {
   )
 
   const markThreadAsUnread = api.messages.updateThreadReadStatus.useMutation({
-    onSuccess: async () => {
+    onSuccess: () => {
       refetchThreads()
     }
   })
 
   const updateThreadStatus = api.messages.updateThreadStatus.useMutation({
     onSuccess: () => {
+      // set the selected thread to the first thread in the list
+      const firstThreadId = threads?.[0]?.thread?.id
+      if (!firstThreadId) return
+      updateSelectedThreadId(firstThreadId)
       refetchThreads()
     }
   })
+
+  const viewingThread = selectedThreadId
+    ? threads.find((item) => item.thread.id === selectedThreadId)
+    : null
+
+  const threadIsUnread = viewingThread?.thread.isUnread
+
   return (
     <div className="flex items-center p-2">
       <div className="flex items-center gap-2">

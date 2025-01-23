@@ -179,7 +179,7 @@ async function getAllContacts() {
   }
 }
 
-generateNewThreads(1)
+generateNewThreads(4)
 
 async function generateNewThreads(amount: number) {
   try {
