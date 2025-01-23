@@ -10,9 +10,18 @@ import {
   ResponsiveContainer
 } from 'recharts'
 import { api } from '~/trpc/react'
+import { useWorkspace } from '~/hooks/context/useWorkspaces'
 
 export function TicketLineChart() {
-  const { data: ticketsCreatedLast7Days } = api.metrics.getTicketsCreatedLast7Days.useQuery()
+  const { selectedWorkspaceId } = useWorkspace()
+  const { data: ticketsCreatedLast7Days } = api.metrics.getTicketsCreatedLast7Days.useQuery(
+    {
+      workspaceId: selectedWorkspaceId
+    },
+    {
+      enabled: selectedWorkspaceId !== ''
+    }
+  )
 
   return (
     <Card className="col-span-4">

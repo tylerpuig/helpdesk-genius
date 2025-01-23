@@ -8,7 +8,8 @@ import bcrypt from 'bcrypt'
 export async function createNewEmailMessageReply(
   threadId: string,
   messageContent: string,
-  context: TRPCContext
+  context: TRPCContext,
+  workspaceId: string
 ) {
   try {
     const thread = await db.query.threadsTable.findFirst({
@@ -38,7 +39,7 @@ export async function createNewEmailMessageReply(
       })
 
     // Mark thread as read
-    await updateIsThreadRead(threadId, true)
+    await updateIsThreadRead(threadId, false)
 
     if (thread) {
       // update user metrics
@@ -47,7 +48,8 @@ export async function createNewEmailMessageReply(
         threadId: threadId,
         isFirstResponse: thread.agentMessageCount === 0,
         responseTimeInSeconds,
-        lastMessageAt: messageCreationDate
+        lastMessageAt: messageCreationDate,
+        workspaceId
       })
     }
 
@@ -65,6 +67,7 @@ type UpdateMetricsParams = {
   isFirstResponse: boolean
   responseTimeInSeconds?: number
   lastMessageAt: Date
+  workspaceId: string
 }
 
 export async function updateUserMetrics({
@@ -72,7 +75,8 @@ export async function updateUserMetrics({
   threadId,
   isFirstResponse,
   responseTimeInSeconds,
-  lastMessageAt
+  lastMessageAt,
+  workspaceId
 }: UpdateMetricsParams) {
   try {
     const today = new Date()
@@ -85,6 +89,7 @@ export async function updateUserMetrics({
         .insert(schema.userDailyMetricsTable)
         .values({
           userId,
+          workspaceId,
           date: today,
           responseCount: 1,
           agentMessageCount: 1,
@@ -119,6 +124,7 @@ export async function updateUserMetrics({
       await tx
         .insert(schema.userStatsTable)
         .values({
+          workspaceId,
           userId,
           totalAgentMessages: 1,
           lastActiveAt: new Date(),

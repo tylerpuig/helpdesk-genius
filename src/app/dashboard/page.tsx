@@ -4,6 +4,7 @@ import { TicketLineChart } from '~/app/_components/dashboard/analytics/tickets-l
 import { TicketPieChart } from '~/app/_components/dashboard/analytics/ticket-pie-chart'
 import { TicketTable } from '~/app/_components/dashboard/analytics/ticket-table'
 import { ticketTypes } from '~/app/_components/dashboard/analytics/data'
+import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { api } from '~/trpc/react'
 
 export default function Page() {
@@ -11,7 +12,15 @@ export default function Page() {
 }
 
 function Dashboard() {
-  const { data: ticketMetrics, isPending } = api.metrics.getTodayTicketMetrics.useQuery()
+  const { selectedWorkspaceId } = useWorkspace()
+  const { data: ticketMetrics, isPending } = api.metrics.getTodayTicketMetrics.useQuery(
+    {
+      workspaceId: selectedWorkspaceId
+    },
+    {
+      enabled: selectedWorkspaceId !== ''
+    }
+  )
 
   return (
     <div className="p-8">

@@ -17,11 +17,11 @@ export function CreateTeam() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [teamName, setTeamName] = useState('')
 
-  const { refetch } = api.teams.getUserTeams.useQuery(undefined, {
+  const { refetch } = api.workspace.getUserWorkspaces.useQuery(undefined, {
     enabled: false
   })
 
-  const createTeam = api.teams.createTeam.useMutation({
+  const createTeam = api.workspace.createWorkspace.useMutation({
     onSuccess: () => {
       refetch()
     }

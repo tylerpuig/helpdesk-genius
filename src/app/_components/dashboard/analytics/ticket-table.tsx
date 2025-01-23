@@ -11,11 +11,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { api } from '~/trpc/react'
 import { Skeleton } from '~/components/ui/skeleton'
 import { useMessages } from '~/hooks/context/useMessages'
+import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { useRouter } from 'next/navigation'
 
 export function TicketTable() {
   const router = useRouter()
-  const { data: tickets, isPending } = api.metrics.getRecentTickets.useQuery()
+  const { selectedWorkspaceId } = useWorkspace()
+  const { data: tickets, isPending } = api.metrics.getRecentTickets.useQuery(
+    {
+      workspaceId: selectedWorkspaceId
+    },
+    {
+      enabled: selectedWorkspaceId !== ''
+    }
+  )
   const { setSelectedThreadId } = useMessages()
 
   function handleSelectRow(threadId: string): void {

@@ -35,23 +35,23 @@ import {
   SelectValue
 } from '~/components/ui/select'
 import { api } from '~/trpc/react'
-import { useTeamManagementStore } from './useTeamManagementStore'
-import type { TeamRole, TeamInvitationStatus } from '~/server/db/types'
+import type { WorkspaceRole, WorkspaceInvitationStatus } from '~/server/db/types'
 import { Badge } from '~/components/ui/badge'
 import { Skeleton } from '~/components/ui/skeleton'
+import { useWorkspace } from '~/hooks/context/useWorkspaces'
 
-const roleToRenderText: Record<TeamRole, string> = {
+const roleToRenderText: Record<WorkspaceRole, string> = {
   member: 'Member',
   admin: 'Admin',
   owner: 'Owner'
 }
 
 export default function UserManagementTable() {
-  const { selectedTeamId } = useTeamManagementStore((state) => state)
+  const { selectedWorkspaceId } = useWorkspace()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
-  const { data: teamMembers, isPending } = api.teams.getTeamMembers.useQuery({
-    teamId: selectedTeamId
+  const { data: teamMembers, isPending } = api.workspace.getTeamMembers.useQuery({
+    workspaceId: selectedWorkspaceId
   })
 
   return (
@@ -89,7 +89,7 @@ export default function UserManagementTable() {
               <TableRow key={member?.invitation?.expiresAt.toString()}>
                 <TableCell>{member.user?.name ?? ''}</TableCell>
                 <TableCell>{member.user?.email ?? ''}</TableCell>
-                <TableCell>{roleToRenderText?.[member?.team?.role] ?? ''}</TableCell>
+                <TableCell>{roleToRenderText?.[member?.member?.role] ?? ''}</TableCell>
                 <TableCell>
                   <TeamMemberStatus status={member?.invitation?.status} />
                   {/* {member?.invitation?.status ?? 'Active'} */}
@@ -122,7 +122,7 @@ export default function UserManagementTable() {
   )
 }
 
-export function TeamMemberStatus({ status }: { status: TeamInvitationStatus | undefined }) {
+export function TeamMemberStatus({ status }: { status: WorkspaceInvitationStatus | undefined }) {
   switch (status) {
     case 'pending':
       return <Badge variant="teamMemberPending">Pending</Badge>
@@ -144,20 +144,20 @@ function AddUserDialog({
   isAddDialogOpen: boolean
   setIsAddDialogOpen: (isOpen: boolean) => void
 }) {
-  const { selectedTeamId } = useTeamManagementStore()
-  const [newUser, setNewUser] = useState<{ email: string; role: TeamRole }>({
+  const { selectedWorkspaceId } = useWorkspace()
+  const [newUser, setNewUser] = useState<{ email: string; role: WorkspaceRole }>({
     email: '',
     role: 'member'
   })
 
-  const { refetch: refetchTeamInvitations } = api.teams.getTeamInvitations.useQuery(
+  const { refetch: refetchTeamInvitations } = api.workspace.getTeamInvitations.useQuery(
     {
-      teamId: selectedTeamId
+      workspaceId: selectedWorkspaceId
     },
     { enabled: false }
   )
 
-  const inviteUser = api.teams.inviteUser.useMutation({
+  const inviteUser = api.workspace.inviteUser.useMutation({
     onSettled: () => {
       setIsAddDialogOpen(false)
       refetchTeamInvitations()
@@ -194,7 +194,7 @@ function AddUserDialog({
             <Label htmlFor="role">Role</Label>
             <Select
               value={newUser.role}
-              onValueChange={(value) => setNewUser({ ...newUser, role: value as TeamRole })}
+              onValueChange={(value) => setNewUser({ ...newUser, role: value as WorkspaceRole })}
             >
               <SelectTrigger className="">
                 <SelectValue placeholder="Role" />
@@ -212,9 +212,9 @@ function AddUserDialog({
           <Button
             className="w-full"
             onClick={() => {
-              if (!selectedTeamId) return
+              if (!selectedWorkspaceId) return
               inviteUser.mutate({
-                teamId: selectedTeamId,
+                workspaceId: selectedWorkspaceId,
                 email: newUser.email,
                 role: newUser.role
               })
