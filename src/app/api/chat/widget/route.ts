@@ -1,19 +1,21 @@
-// src/app/api/chat/widget/route.ts
 import { NextResponse } from 'next/server'
-import { widgetScript } from '~/app/api/chat/widget/widget'
+import { getWidgetScript } from '../../../../server/widget/widget'
 
 export async function GET(request: Request) {
-  // Get the workspace ID from URL search params
+  // Get workspaceId from URL in App Router
   const { searchParams } = new URL(request.url)
   const workspaceId = searchParams.get('workspaceId')
 
-  // The JavaScript code that will be served
-
-  // Create response with proper headers
-  return new NextResponse(widgetScript, {
+  // Create response with JavaScript content type
+  const widgetScript = getWidgetScript(workspaceId as string)
+  const response = new NextResponse(widgetScript, {
     headers: {
       'Content-Type': 'application/javascript',
-      'Cache-Control': 'public, max-age=3600'
+      'Access-Control-Allow-Origin': '*', // Or specify your domain
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Content-Type'
     }
   })
+
+  return response
 }
