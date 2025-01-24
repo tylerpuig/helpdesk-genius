@@ -3,90 +3,68 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
 import {
   Phone,
   Video,
   Info,
   MoreVertical,
   PlusCircle,
-  ImageIcon,
-  Smile,
-  ThumbsUp,
   ChevronRight,
   ChevronLeft,
-  Scroll
+  User
 } from 'lucide-react'
-import { MinimalTiptapEditor } from '~/app/_components/minimal-tiptap'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { MessageInput } from '~/components/ui/message-input'
 import { api } from '~/trpc/react'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
+import { useSession } from 'next-auth/react'
+// format date since
+import { useThreadStore } from '~/hooks/store/useThread'
+import { format } from 'date-fns'
 
-interface Message {
-  id: number
-  content: string
-  sender: string
-  time: string
-  isCurrentUser: boolean
-}
-
-interface Chat {
-  id: number
-  name: string
-  status?: string
-  avatar: string
-  lastMessage?: string
-}
-
-const MIN_SIDEBAR_WIDTH = 60
-const MAX_SIDEBAR_WIDTH = 320
+const MIN_SIDEBAR_WIDTH = 80
 const DEFAULT_SIDEBAR_WIDTH = 280
 
 export default function ChatInterface() {
+  const { data: session } = useSession()
+  const { updateSelectedThreadId, selectedThreadId } = useThreadStore()
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH)
-  const [isResizing, setIsResizing] = useState(false)
   const [chatMessage, setChatMessage] = useState('')
   const sidebarRef = useRef<HTMLDivElement>(null)
   const { selectedWorkspaceId } = useWorkspace()
 
-  const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
-    setIsResizing(true)
-  }, [])
-
-  const stopResizing = useCallback(() => {
-    setIsResizing(false)
-  }, [])
-
   const toggleSidebar = () => {
     setSidebarWidth(sidebarWidth === MIN_SIDEBAR_WIDTH ? DEFAULT_SIDEBAR_WIDTH : MIN_SIDEBAR_WIDTH)
   }
-  const [selectedThreadId, setSelectedThreadId] = useState('')
+  // const [selectedThreadId, setSelectedThreadId] = useState('')
 
   const isCollapsed = sidebarWidth <= MIN_SIDEBAR_WIDTH
 
-  const { data: threads, isPending: threadsPending } = api.chat.getChatThreads.useQuery({
+  const { data: threadsData, refetch: refetchThreads } = api.chat.getChatThreads.useQuery({
     workspaceId: selectedWorkspaceId
   })
 
-  const {
-    data: messages,
-    isPending: messagesPending,
-    refetch: refetchMessages
-  } = api.chat.getChatMessagesFromThread.useQuery({
+  const sendChatMessage = api.chat.sendChatMessage.useMutation({
+    onSuccess: () => {
+      refetchMessages()
+    }
+  })
+
+  const { data: messages, refetch: refetchMessages } = api.chat.getChatMessagesFromThread.useQuery({
     threadId: selectedThreadId
   })
 
   api.chat.useChatSubscription.useSubscription(undefined, {
     onData: (data) => {
-      console.log('data:', data)
-      refetchMessages()
+      if (data.notificationType === 'NEW_MESSAGE') {
+        refetchMessages()
+      } else if (data.notificationType === 'NEW_THREAD') {
+        refetchThreads()
+      }
     }
   })
 
-  // console.log(threads)
-  // console.log(messages)
-
+  const selectedThread = threadsData?.find((thread) => thread.thread.id === selectedThreadId)
   return (
     <div className="flex">
       <div className="mx-auto flex w-full flex-row overflow-hidden border">
@@ -97,7 +75,9 @@ export default function ChatInterface() {
           style={{ width: `${sidebarWidth}px`, minWidth: `${sidebarWidth}px` }}
         >
           <div className="flex items-center justify-between border-b border-zinc-800 p-4">
-            {!isCollapsed && <h2 className="font-semibold text-white">Chats (4)</h2>}
+            {!isCollapsed && (
+              <h2 className="font-semibold text-white">{threadsData?.length ?? '0'} Chats</h2>
+            )}
             <div className="flex gap-2">
               {!isCollapsed && (
                 <>
@@ -124,26 +104,29 @@ export default function ChatInterface() {
             </div>
           </div>
           {/* <div className="flex-1 overflow-auto"> */}
-          <ScrollArea className="h-full">
-            {threads &&
-              threads.map((thread) => (
+          <ScrollArea className="max-h-[69rem]">
+            {threadsData &&
+              threadsData.map((thread) => (
                 <div
-                  key={thread.id}
+                  key={thread.thread.id}
                   onClick={() => {
-                    setSelectedThreadId(thread.id)
+                    updateSelectedThreadId(thread.thread.id)
                   }}
                   className="flex cursor-pointer items-center gap-3 p-4 hover:bg-zinc-900"
                 >
-                  <Avatar className="h-10 w-10 border-2 border-orange-500">
-                    <AvatarImage src={''} />
-                    <AvatarFallback>{''}</AvatarFallback>
-                  </Avatar>
+                  {/* <Avatar className="h-10 w-10 border-2 border-orange-500"> */}
+                  <User className="h-10 w-10 rounded-full border-2 border-purple-800" />
+                  {/* <AvatarImage src={faker.image.avatar()} /> */}
+                  {/* <AvatarFallback>{''}</AvatarFallback> */}
+                  {/* </Avatar> */}
                   {!isCollapsed && (
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-white">{thread.title}</div>
-                      {thread.status && (
+                      <div className="font-medium text-white">
+                        {thread?.latestMessage?.senderName}
+                      </div>
+                      {/* {thread.status && (
                         <div className="text-sm text-zinc-400">{thread.status}</div>
-                      )}
+                      )} */}
                     </div>
                   )}
                 </div>
@@ -153,20 +136,25 @@ export default function ChatInterface() {
         </div>
 
         {/* Resizer */}
-        <div className="w-1 cursor-col-resize bg-zinc-800" onMouseDown={startResizing} />
+        <div className="w-1 cursor-col-resize bg-zinc-800" />
 
         {/* Main Chat Area */}
         <div className="flex flex-1 flex-col">
           {/* Chat Header */}
           <div className="flex items-center justify-between border-b border-zinc-800 p-4">
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 border-2 border-orange-500">
-                <AvatarImage src={''} />
-                <AvatarFallback>{''}</AvatarFallback>
-              </Avatar>
+              <User className="h-10 w-10 rounded-full border-2 border-purple-800" />
               <div>
-                <div className="font-medium text-white">{''}</div>
-                <div className="text-sm text-zinc-400">Active 2 mins ago</div>
+                <div className="font-medium text-white">
+                  {selectedThread?.latestMessage?.senderName ?? ''}
+                </div>
+                <div className="text-sm text-zinc-400">
+                  {messages && messages?.messages?.length > 0 ? (
+                    <>{format(messages?.lastMessageTime ?? '', 'h:mm a')}</>
+                  ) : (
+                    ''
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -184,17 +172,17 @@ export default function ChatInterface() {
 
           {/* Messages */}
 
-          <ScrollArea className="h-full">
+          <ScrollArea className="max-h-[60rem] min-h-[60rem]">
             <div className="flex-1 space-y-4 overflow-auto p-4">
-              {messages &&
-                messages.map((message) => (
+              {messages?.messages &&
+                messages.messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex items-end gap-2 ${message.role !== 'customer' ? 'flex-row-reverse' : ''}`}
                   >
                     {message.role !== 'customer' && (
                       <Avatar className="h-8 w-8 border-2 border-orange-500">
-                        <AvatarImage src={''} />
+                        <AvatarImage src={session?.user?.image ?? ''} />
                         <AvatarFallback>{''}</AvatarFallback>
                       </Avatar>
                     )}
@@ -210,12 +198,6 @@ export default function ChatInterface() {
                         {message.createdAt.toLocaleString()}
                       </span>
                     </div>
-                    {message.role !== 'customer' && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src="/placeholder.svg" />
-                        <AvatarFallback>You</AvatarFallback>
-                      </Avatar>
-                    )}
                   </div>
                 ))}
             </div>
@@ -226,6 +208,17 @@ export default function ChatInterface() {
             <MessageInput
               value={chatMessage}
               className="text-md"
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  await sendChatMessage.mutateAsync({
+                    threadId: selectedThreadId,
+                    workspaceId: selectedWorkspaceId,
+                    content: chatMessage
+                  })
+                  setChatMessage('')
+                }
+              }}
               onChange={(e) => {
                 setChatMessage(e.target.value)
               }}

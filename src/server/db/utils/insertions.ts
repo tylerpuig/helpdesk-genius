@@ -1,6 +1,6 @@
 import * as schema from '~/server/db/schema'
 import { db } from '~/server/db'
-import { desc, eq, sql } from 'drizzle-orm'
+import { desc, eq, sql, asc } from 'drizzle-orm'
 import { type TRPCContext } from '~/server/api/trpc'
 import * as openaiUtils from '~/server/integrations/openai'
 import bcrypt from 'bcrypt'
@@ -240,7 +240,11 @@ export async function createNewChat(workspaceId: string) {
   }
 }
 
-export async function createNewChatMessage(threadId: string, content: string) {
+export async function createNewChatMessage(
+  threadId: string,
+  content: string,
+  userInfo: { name: string; email: string }
+) {
   try {
     const [message] = await db
       .insert(schema.messagesTable)
@@ -248,31 +252,13 @@ export async function createNewChatMessage(threadId: string, content: string) {
         threadId,
         content: content,
         role: 'customer',
-        senderEmail: '',
-        senderName: ''
+        senderEmail: userInfo?.email ?? '',
+        senderName: userInfo?.name ?? ''
       })
       .returning()
 
     return message
   } catch (error) {
     console.error('createNewChatMessage', error)
-  }
-}
-
-export async function getChatMessages(threadId: string) {
-  try {
-    const messages = await db
-      .select({
-        id: schema.messagesTable.id,
-        content: schema.messagesTable.content,
-        role: schema.messagesTable.role
-      })
-      .from(schema.messagesTable)
-      .where(eq(schema.messagesTable.threadId, threadId))
-      .orderBy(desc(schema.messagesTable.createdAt))
-
-    return messages
-  } catch (error) {
-    console.error('getChatMessages', error)
   }
 }

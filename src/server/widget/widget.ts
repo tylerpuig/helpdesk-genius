@@ -378,7 +378,7 @@ export function getWidgetScript(workspaceId: string) {
       });
 
       const data = await response.json();
-    //  addMessage(data.response);
+      await pollMessages();
     } catch (error) {
       console.error("Error sending message:", error);
       addMessage("Sorry, there was an error sending your message.");
@@ -398,8 +398,9 @@ export function getWidgetScript(workspaceId: string) {
       );
 
       const data = await response.json();
-      if (data.messages && data.messages.length > 0) {
-        data.messages.forEach((msg) => {
+      if (data && data.length > 0) {
+        clearMessages();
+        data.forEach((msg) => {
           addMessage(msg.content, msg?.role === 'customer', true);
         });
         lastMessageTimestamp = Date.now();

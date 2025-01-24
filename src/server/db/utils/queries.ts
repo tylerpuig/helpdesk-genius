@@ -1,4 +1,4 @@
-import { eq, sql, and, gte, lte, count, desc } from 'drizzle-orm'
+import { eq, sql, and, gte, lte, count, desc, asc } from 'drizzle-orm'
 import * as schema from '~/server/db/schema'
 import { db } from '~/server/db'
 import { type WorkspaceRole } from '~/server/db/types'
@@ -125,14 +125,50 @@ export async function getRecentTickets(workspaceId: string) {
         title: schema.threadsTable.title,
         priority: schema.threadsTable.priority,
         status: schema.threadsTable.status,
-        createdAt: schema.threadsTable.createdAt
+        createdAt: schema.threadsTable.createdAt,
+        channel: schema.threadsTable.channel
       })
       .from(schema.threadsTable)
-      .where(eq(schema.threadsTable.workspaceId, workspaceId))
+      .where(
+        and(
+          eq(schema.threadsTable.workspaceId, workspaceId),
+          eq(schema.threadsTable.status, 'open'),
+          eq(schema.threadsTable.channel, 'email')
+        )
+      )
       .orderBy(desc(schema.threadsTable.createdAt))
       .limit(5)
 
     return tickets
+  } catch (err) {
+    console.error(err)
+    return []
+  }
+}
+
+export async function getRecentChatThreads(workspaceId: string) {
+  try {
+    const threads = await db
+      .select({
+        id: schema.threadsTable.id,
+        title: schema.threadsTable.title,
+        priority: schema.threadsTable.priority,
+        status: schema.threadsTable.status,
+        createdAt: schema.threadsTable.createdAt,
+        channel: schema.threadsTable.channel
+      })
+      .from(schema.threadsTable)
+      .where(
+        and(
+          eq(schema.threadsTable.workspaceId, workspaceId),
+          eq(schema.threadsTable.status, 'open'),
+          eq(schema.threadsTable.channel, 'chat')
+        )
+      )
+      .orderBy(desc(schema.threadsTable.createdAt))
+      .limit(5)
+
+    return threads
   } catch (err) {
     console.error(err)
     return []
@@ -191,4 +227,25 @@ export async function isUserWorkspaceMember(
   }
 
   return result
+}
+
+export async function getChatMessages(threadId: string) {
+  try {
+    const messages = await db
+      .select({
+        id: schema.messagesTable.id,
+        content: schema.messagesTable.content,
+        role: schema.messagesTable.role,
+        createdAt: schema.messagesTable.createdAt,
+        senderEmail: schema.messagesTable.senderEmail,
+        senderName: schema.messagesTable.senderName
+      })
+      .from(schema.messagesTable)
+      .where(eq(schema.messagesTable.threadId, threadId))
+      .orderBy(asc(schema.messagesTable.createdAt))
+
+    return messages
+  } catch (error) {
+    console.error('getChatMessages', error)
+  }
 }

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getWidgetScript } from '../../../../server/widget/widget'
 
+export const runtime = 'nodejs'
+
 export async function GET(request: Request) {
   // Get workspaceId from URL in App Router
   const { searchParams } = new URL(request.url)

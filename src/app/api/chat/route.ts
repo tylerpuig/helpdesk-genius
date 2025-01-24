@@ -1,7 +1,7 @@
-// src/app/api/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import * as dbInsertionUtils from '~/server/db/utils/insertions'
-import { chatEE } from '~/server/api/routers/chat'
+import * as dbQueryUtils from '~/server/db/utils/queries'
+import { chatEE, type EventEmitterChatMessage } from '~/server/api/routers/chat'
 
 export const runtime = 'nodejs'
 
@@ -9,6 +9,10 @@ type ChatRequest = {
   workspaceId: string
   message: string
   chatId: string
+  user: {
+    name: string
+    email: string
+  }
 }
 
 type ChatResponse = {
@@ -19,14 +23,10 @@ type ChatResponse = {
 
 const chatCache = new Map<string, string>()
 
-// Changed Request to NextRequest here
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as ChatRequest
-    const { workspaceId, message, chatId } = body
-
-    // console.log('body:', body)
-    // console.log('workspaceId:', workspaceId)
+    const { workspaceId, message, chatId, user } = body
 
     if (!workspaceId || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -36,6 +36,10 @@ export async function POST(request: NextRequest) {
 
     if (!threadId) {
       const newChat = await dbInsertionUtils.createNewChat(workspaceId)
+      const subMessage: EventEmitterChatMessage = {
+        notificationType: 'NEW_THREAD'
+      }
+      chatEE.emit('newMessage', subMessage)
       if (!newChat) {
         return NextResponse.json({ error: 'Failed to create new chat' }, { status: 500 })
       }
@@ -43,7 +47,7 @@ export async function POST(request: NextRequest) {
       chatCache.set(chatId, threadId)
     }
 
-    await dbInsertionUtils.createNewChatMessage(threadId, message)
+    await dbInsertionUtils.createNewChatMessage(threadId, message, user)
 
     const response: ChatResponse = {
       response: `Received message: ${message}`,
@@ -51,7 +55,10 @@ export async function POST(request: NextRequest) {
       threadId
     }
 
-    chatEE.emit('newMessage', response)
+    const subMessage: EventEmitterChatMessage = {
+      notificationType: 'NEW_MESSAGE'
+    }
+    chatEE.emit('newMessage', subMessage)
 
     return NextResponse.json(response)
   } catch (error) {
@@ -65,16 +72,11 @@ type ChatMessagesRequest = {
   chatId: string
 }
 
-// GET method is already using NextRequest, so no changes needed here
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const workspaceId = searchParams.get('workspaceId')
     const chatId = searchParams.get('chatId')
-    // console.log('workspaceId:', workspaceId)
-    // console.log('chatId:', chatId)
-
-    // console.log(chatCache)
 
     if (!workspaceId || !chatId) {
       return NextResponse.json({ error: 'Missing workspaceId or chatId' }, { status: 400 })
@@ -90,7 +92,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Chat not found' }, { status: 404 })
     }
 
-    const messages = await dbInsertionUtils.getChatMessages(threadId)
+    const messages = await dbQueryUtils.getChatMessages(threadId)
 
     return NextResponse.json(messages)
   } catch (error) {
