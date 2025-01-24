@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
-import { and, eq, desc, asc } from 'drizzle-orm'
+import { and, eq, desc, asc, ne, SQL } from 'drizzle-orm'
 import * as schema from '~/server/db/schema'
 import * as dbQueryUtils from '~/server/db/utils/queries'
 import { TRPCError } from '@trpc/server'
@@ -242,5 +242,40 @@ export const workspaceRouter = createTRPCRouter({
           )
       })
       return { success: true }
+    }),
+  getTeamMembersForAnalytics: protectedProcedure
+    .input(z.object({ workspaceId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const adminSearch = await ctx.db
+        .select()
+        .from(schema.workspaceMembersTable)
+        .where(
+          and(
+            eq(schema.workspaceMembersTable.workspaceId, input.workspaceId),
+            eq(schema.workspaceMembersTable.userId, ctx.session.user.id),
+            eq(schema.workspaceMembersTable.role, 'member')
+          )
+        )
+
+      const isAdmin = adminSearch.length === 0
+
+      const conditions: SQL[] = [eq(schema.workspaceMembersTable.workspaceId, input.workspaceId)]
+
+      if (!isAdmin) {
+        conditions.push(eq(schema.workspaceMembersTable.userId, ctx.session.user.id))
+      }
+
+      const workspaceMembers = await ctx.db
+        .select({
+          id: schema.workspaceMembersTable.id,
+          role: schema.workspaceMembersTable.role,
+          userId: schema.users.id,
+          name: schema.users.name
+        })
+        .from(schema.workspaceMembersTable)
+        .leftJoin(schema.users, eq(schema.users.id, schema.workspaceMembersTable.userId))
+        .where(and(...conditions))
+
+      return workspaceMembers
     })
 })
