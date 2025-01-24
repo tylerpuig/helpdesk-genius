@@ -1,5 +1,5 @@
 //@ts-nocheck
-
+const apiUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
 function randString() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let result = ''
@@ -364,7 +364,7 @@ export function getWidgetScript(workspaceId: string) {
     lastMessageTimestamp = Date.now();
 
     try {
-      const response = await fetch("http://localhost:3000/api/chat", {
+      const response = await fetch("${apiUrl}/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -391,7 +391,7 @@ export function getWidgetScript(workspaceId: string) {
 
     try {
       const response = await fetch(
-         \`http://localhost:3000/api/chat?workspaceId=${workspaceId}&chatId=\${chatId}\`,
+         \`${apiUrl}/api/chat?workspaceId=${workspaceId}&chatId=\${chatId}\`,
         {
           method: "GET",
         }
