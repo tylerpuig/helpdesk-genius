@@ -84,7 +84,7 @@ export default function MessageUtilities() {
   const updateThreadStatus = api.messages.updateThreadStatus.useMutation({
     onSuccess: () => {
       // set the selected thread to the first thread in the list
-      const firstThreadId = threads?.[0]?.thread?.id
+      const firstThreadId = threads?.[0]?.id
       if (!firstThreadId) return
       updateSelectedThreadId(firstThreadId)
       refetchThreads()
@@ -92,10 +92,10 @@ export default function MessageUtilities() {
   })
 
   const viewingThread = selectedThreadId
-    ? threads.find((item) => item.thread.id === selectedThreadId)
+    ? threads.find((item) => item.id === selectedThreadId)
     : null
 
-  const threadIsUnread = viewingThread?.thread.isUnread
+  const threadIsUnread = viewingThread?.isUnread
 
   return (
     <div className="flex items-center p-2">
@@ -108,7 +108,8 @@ export default function MessageUtilities() {
                   if (!selectedThreadId) return
                   updateThreadStatus.mutate({
                     threadId: selectedThreadId,
-                    status: el.status
+                    status: el.status,
+                    workspaceId: selectedWorkspaceId
                   })
                 }}
                 variant="ghost"
@@ -225,7 +226,7 @@ export default function MessageUtilities() {
               }
             }}
           >
-            {viewingThread?.thread.isUnread ? 'Mark as read' : 'Mark as unread'}
+            {viewingThread?.isUnread ? 'Mark as read' : 'Mark as unread'}
           </DropdownMenuItem>
           <DropdownMenuItem>Star thread</DropdownMenuItem>
           <DropdownMenuItem>Add label</DropdownMenuItem>

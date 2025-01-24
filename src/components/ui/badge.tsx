@@ -16,7 +16,10 @@ const badgeVariants = cva(
         outline: 'text-foreground',
         teamMemberPending: 'bg-yellow-700 text-white',
         teamMemberActive: 'bg-green-700 text-white',
-        teamMemberInactive: 'bg-gray-500 text-white'
+        teamMemberInactive: 'bg-gray-500 text-white',
+        highPriority: 'bg-red-700 text-white',
+        mediumPriority: 'bg-yellow-700 text-white',
+        lowPriority: 'bg-gray-500 text-white'
       }
     },
     defaultVariants: {

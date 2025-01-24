@@ -1,6 +1,6 @@
 import * as schema from '~/server/db/schema'
 import { db } from '~/server/db'
-import { desc, eq, sql, asc } from 'drizzle-orm'
+import { desc, eq, sql, and } from 'drizzle-orm'
 import { type TRPCContext } from '~/server/api/trpc'
 import * as openaiUtils from '~/server/integrations/openai'
 import bcrypt from 'bcrypt'
@@ -54,7 +54,7 @@ export async function createNewEmailMessageReply(
     }
 
     if (newMessage?.id) {
-      await openaiUtils.generateEmailMessageReply(newMessage.id)
+      await openaiUtils.generateEmailMessageReply(newMessage.id, threadId)
     }
   } catch (error) {
     console.error('createNewEmailMessageReply', error)
@@ -100,7 +100,11 @@ export async function updateUserMetrics({
             : {})
         })
         .onConflictDoUpdate({
-          target: [schema.userDailyMetricsTable.userId, schema.userDailyMetricsTable.date],
+          target: [
+            schema.userDailyMetricsTable.workspaceId,
+            schema.userDailyMetricsTable.userId,
+            schema.userDailyMetricsTable.date
+          ],
           set: {
             responseCount: sql`${schema.userDailyMetricsTable.responseCount} + 1`,
             agentMessageCount: sql`${schema.userDailyMetricsTable.agentMessageCount} + 1`,
@@ -135,24 +139,24 @@ export async function updateUserMetrics({
             : {})
         })
         .onConflictDoUpdate({
-          target: [schema.userStatsTable.userId],
+          target: [schema.userStatsTable.userId, schema.userStatsTable.workspaceId],
           set: {
             totalAgentMessages: sql`${schema.userStatsTable.totalAgentMessages} + 1`,
             lastActiveAt: new Date(),
             ...(isFirstResponse && responseTimeInSeconds
               ? {
                   averageFirstResponseTime: sql`
-                  (${schema.userStatsTable.averageFirstResponseTime} *
-                   ${schema.userStatsTable.totalThreadsHandled} + ${responseTimeInSeconds}) /
-                  (${schema.userStatsTable.totalThreadsHandled} + 1)
-                `
+            (${schema.userStatsTable.averageFirstResponseTime} *
+             ${schema.userStatsTable.totalThreadsHandled} + ${responseTimeInSeconds}) /
+            (${schema.userStatsTable.totalThreadsHandled} + 1)
+            `
                 }
               : {}),
             averageResponseTime: sql`
-            (${schema.userStatsTable.averageResponseTime} * ${schema.userStatsTable.totalAgentMessages} + ${
-              responseTimeInSeconds || 0
-            }) / (${schema.userStatsTable.totalAgentMessages} + 1)
-          `
+      (${schema.userStatsTable.averageResponseTime} * ${schema.userStatsTable.totalAgentMessages} + ${
+        responseTimeInSeconds || 0
+      }) / (${schema.userStatsTable.totalAgentMessages} + 1)
+      `
           }
         })
 
@@ -190,19 +194,47 @@ export async function updateIsThreadRead(threadId: string, status: boolean): Pro
   }
 }
 
-export async function incrementUserResolvedThread(userId: string): Promise<void> {
+export async function incrementUserResolvedThread(
+  userId: string,
+  workspaceId: string
+): Promise<void> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
   try {
     await db
       .update(schema.userStatsTable)
-      .set({ totalThreadsResolved: sql`${schema.userStatsTable.totalThreadsResolved} + 1` })
-      .where(eq(schema.userStatsTable.userId, userId))
+      .set({
+        totalThreadsResolved: sql`${schema.userStatsTable.totalThreadsResolved} + 1`,
+        totalThreadsHandled: sql`${schema.userStatsTable.totalThreadsHandled} + 1`
+      })
+      .where(
+        and(
+          eq(schema.userStatsTable.userId, userId),
+          eq(schema.userStatsTable.workspaceId, workspaceId)
+        )
+      )
 
     await db
-      .update(schema.userDailyMetricsTable)
-      .set({ threadsResolved: sql`${schema.userDailyMetricsTable.threadsResolved} + 1` })
-      .where(eq(schema.userDailyMetricsTable.userId, userId))
+      .insert(schema.userDailyMetricsTable)
+      .values({
+        userId,
+        workspaceId,
+        date: today,
+        threadsResolved: 1
+      })
+      .onConflictDoUpdate({
+        target: [
+          schema.userDailyMetricsTable.workspaceId,
+          schema.userDailyMetricsTable.userId,
+          schema.userDailyMetricsTable.date
+        ],
+        set: {
+          threadsResolved: sql`${schema.userDailyMetricsTable.threadsResolved} + 1`
+        }
+      })
   } catch (error) {
-    console.error('markThreadResolved', error)
+    console.error('incrementUserResolvedThread', error)
   }
 }
 

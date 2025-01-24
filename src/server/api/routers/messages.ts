@@ -9,42 +9,30 @@ export const messagesRouter = createTRPCRouter({
   viewEmailMessageThreads: protectedProcedure
     .input(z.object({ status: threadStatusSchema, workspaceId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const threads = await ctx.db
-        .select({
-          thread: {
-            id: schema.threadsTable.id,
-            status: schema.threadsTable.status,
-            priority: schema.threadsTable.priority,
-            title: schema.threadsTable.title,
-            createdAt: schema.threadsTable.createdAt,
-            lastMessageAt: schema.threadsTable.lastMessageAt,
-            channel: schema.threadsTable.channel,
-            isUnread: schema.threadsTable.isUnread
-          },
-          latestMessage: {
-            content: schema.messagesTable.content,
-            senderName: schema.messagesTable.senderName,
-            senderEmail: schema.messagesTable.senderEmail,
-            role: schema.messagesTable.role,
-            createdAt: schema.messagesTable.createdAt,
-            isUnread: schema.messagesTable.isUnread
+      const threads = await ctx.db.query.threadsTable.findMany({
+        where: and(
+          eq(schema.threadsTable.status, input.status),
+          eq(schema.threadsTable.workspaceId, input.workspaceId),
+          eq(schema.threadsTable.channel, 'email')
+        ),
+        with: {
+          messages: {
+            orderBy: desc(schema.messagesTable.createdAt),
+            limit: 1
           }
-        })
-        .from(schema.threadsTable)
-        .innerJoin(
-          schema.messagesTable,
-          and(
-            eq(schema.messagesTable.threadId, schema.threadsTable.id),
-            eq(schema.messagesTable.createdAt, schema.threadsTable.lastMessageAt)
-          )
-        )
-        .where(
-          and(
-            eq(schema.threadsTable.status, input.status),
-            eq(schema.threadsTable.workspaceId, input.workspaceId)
-          )
-        )
-        .orderBy(desc(schema.threadsTable.lastMessageAt))
+        },
+        columns: {
+          id: true,
+          status: true,
+          priority: true,
+          title: true,
+          createdAt: true,
+          lastMessageAt: true,
+          channel: true,
+          isUnread: true
+        },
+        orderBy: desc(schema.threadsTable.lastMessageAt)
+      })
 
       return threads
     }),
@@ -87,7 +75,7 @@ export const messagesRouter = createTRPCRouter({
       return { success: true }
     }),
   updateThreadStatus: protectedProcedure
-    .input(z.object({ threadId: z.string(), status: threadStatusSchema }))
+    .input(z.object({ threadId: z.string(), status: threadStatusSchema, workspaceId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       await ctx.db
         .update(schema.threadsTable)
@@ -95,7 +83,7 @@ export const messagesRouter = createTRPCRouter({
         .where(eq(schema.threadsTable.id, input.threadId))
 
       if (input.status === 'closed') {
-        void dbInsertionUtils.incrementUserResolvedThread(ctx.session.user.id)
+        void dbInsertionUtils.incrementUserResolvedThread(ctx.session.user.id, input.workspaceId)
       }
 
       return { success: true }

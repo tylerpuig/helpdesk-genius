@@ -2,14 +2,14 @@ import OpenAI from 'openai'
 import { z } from 'zod'
 import { db } from '~/server/db'
 import * as schema from '~/server/db/schema'
-import { asc, eq, and, desc } from 'drizzle-orm'
+import { asc, eq, and, desc, sql } from 'drizzle-orm'
 import { faker } from '@faker-js/faker'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
 
-export async function generateEmailMessageReply(messageId: string) {
+export async function generateEmailMessageReply(messageId: string, threadId: string) {
   try {
     const previousMessage = await db.query.messagesTable.findFirst({
       where: and(eq(schema.messagesTable.id, messageId)),
@@ -84,6 +84,14 @@ export async function generateEmailMessageReply(messageId: string) {
       .update(schema.threadsTable)
       .set({ lastMessageAt: messageDate })
       .where(eq(schema.threadsTable.id, previousMessage.threadId))
+
+    await db
+      .update(schema.threadsTable)
+      .set({
+        messageCount: sql`${schema.threadsTable.messageCount} + 1`,
+        customerMessageCount: sql`${schema.threadsTable.customerMessageCount} + 1`
+      })
+      .where(eq(schema.threadsTable.id, threadId))
   } catch (error) {
     console.error(error)
   }

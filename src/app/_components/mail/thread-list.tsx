@@ -30,62 +30,66 @@ export function MailList() {
     }
   })
 
+  // const latestMessage = threadsData?.messages?.at(-1)
+
   return (
     <ScrollArea className="h-screen">
       <div className="flex flex-col gap-2 p-4 pt-0">
-        {(threadsData ?? []).map((item) => (
-          <button
-            key={item.thread.id}
-            className={cn(
-              'flex flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-all hover:bg-accent',
-              selectedThreadId === item.thread.id && 'bg-muted'
-            )}
-            onClick={() => {
-              updateSelectedThreadId(item.thread.id)
-              markThreadAsRead.mutate({ threadId: item.thread.id, isUnread: false })
-            }}
-          >
-            <div className="flex w-full flex-col gap-1">
-              <div className="flex items-center">
-                <div className="flex items-center gap-2">
-                  <div className="font-semibold">
-                    {item.thread?.title ?? ''}
-                    {item.thread?.isUnread && (
-                      <span className="ml-2 inline-block h-2 w-2 rounded-full bg-blue-600" />
+        {(threadsData ?? []).map((item) => {
+          const latestMessage = item.messages?.at(-1)
+          return (
+            <button
+              key={item.id}
+              className={cn(
+                'flex flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-all hover:bg-accent',
+                selectedThreadId === item.id && 'bg-muted'
+              )}
+              onClick={() => {
+                updateSelectedThreadId(item.id)
+                markThreadAsRead.mutate({ threadId: item.id, isUnread: false })
+              }}
+            >
+              <div className="flex w-full flex-col gap-1">
+                <div className="flex items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="font-semibold">
+                      {item?.title ?? ''}
+                      {item?.isUnread && (
+                        <span className="ml-2 inline-block h-2 w-2 rounded-full bg-blue-600" />
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    className={cn(
+                      'ml-auto text-xs',
+                      selectedThreadId === item.id ? 'text-foreground' : 'text-muted-foreground'
                     )}
+                  >
+                    {formatDistanceToNow(new Date(item.lastMessageAt), {
+                      addSuffix: true
+                    })}
                   </div>
                 </div>
-                <div
-                  className={cn(
-                    'ml-auto text-xs',
-                    selectedThreadId === item.thread.id
-                      ? 'text-foreground'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {formatDistanceToNow(new Date(item.thread.lastMessageAt), {
-                    addSuffix: true
-                  })}
-                </div>
+                <div className="text-xs font-medium">{latestMessage?.content.substring(0, 25)}</div>
               </div>
-              <div className="text-xs font-medium">
-                {item.latestMessage.content.substring(0, 25)}
+              <div className="line-clamp-2 text-xs text-muted-foreground">
+                {latestMessage?.content.substring(0, 300)}
               </div>
-            </div>
-            <div className="line-clamp-2 text-xs text-muted-foreground">
-              {item.latestMessage.content.substring(0, 300)}
-            </div>
-            {/* {item.labels.length ? (
-              <div className="flex items-center gap-2">
-                {item.labels.map((label) => (
-                  <Badge key={label} variant={getBadgeVariantFromLabel(label)}>
-                    {label}
+              {true ? (
+                <div className="flex items-center gap-2">
+                  <Badge key={item.priority} variant={getBadgeVariantByPriority(item.priority)}>
+                    {item.priority}
                   </Badge>
-                ))}
-              </div>
-            ) : null} */}
-          </button>
-        ))}
+                  {['work', 'personal'].map((label) => (
+                    <Badge key={label} variant={getBadgeVariantFromLabel(label)}>
+                      {label}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+            </button>
+          )
+        })}
       </div>
     </ScrollArea>
   )
@@ -98,6 +102,19 @@ function getBadgeVariantFromLabel(label: string): ComponentProps<typeof Badge>['
 
   if (['personal'].includes(label.toLowerCase())) {
     return 'outline'
+  }
+
+  return 'secondary'
+}
+
+function getBadgeVariantByPriority(label: string): ComponentProps<typeof Badge>['variant'] {
+  switch (label) {
+    case 'high':
+      return 'highPriority'
+    case 'medium':
+      return 'mediumPriority'
+    case 'low':
+      return 'lowPriority'
   }
 
   return 'secondary'
