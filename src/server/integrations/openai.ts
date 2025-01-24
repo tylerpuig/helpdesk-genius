@@ -121,3 +121,28 @@ export async function generateChatThreadTitle(message: string): Promise<string> 
 
   return ''
 }
+
+export async function generateContactSummary(contactEmail: string, messages: string) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a customer support agent. Summarize the last 15 messages sent to ${contactEmail}.`
+        },
+        {
+          role: 'user',
+          content: `Summarize theses messages ${messages}. Don't mention the quantity of messages. Make it less than 100 words.`
+        }
+      ]
+    })
+
+    const summary = response?.choices?.[0]?.message?.content ?? ''
+    return summary
+  } catch (error) {
+    console.error(error)
+  }
+
+  return ''
+}
