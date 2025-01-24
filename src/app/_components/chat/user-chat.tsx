@@ -18,10 +18,9 @@ import { MessageInput } from '~/components/ui/message-input'
 import { api } from '~/trpc/react'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { useSession } from 'next-auth/react'
-// format date since
-import { useThreadStore } from '~/hooks/store/useThread'
 import { format, formatDistanceToNow } from 'date-fns'
 import { Skeleton } from '~/components/ui/skeleton'
+import { useChatStore } from '~/app/_components/chat/useChatStore'
 
 const MIN_SIDEBAR_WIDTH = 80
 const DEFAULT_SIDEBAR_WIDTH = 280
@@ -37,7 +36,7 @@ function formatDate(date: Date) {
 
 export default function ChatInterface() {
   const { data: session } = useSession()
-  const { updateSelectedThreadId, selectedThreadId } = useThreadStore()
+  const { setSelectedThreadId, selectedThreadId } = useChatStore()
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH)
   const [chatMessage, setChatMessage] = useState('')
   const sidebarRef = useRef<HTMLDivElement>(null)
@@ -46,7 +45,6 @@ export default function ChatInterface() {
   const toggleSidebar = () => {
     setSidebarWidth(sidebarWidth === MIN_SIDEBAR_WIDTH ? DEFAULT_SIDEBAR_WIDTH : MIN_SIDEBAR_WIDTH)
   }
-  // const [selectedThreadId, setSelectedThreadId] = useState('')
 
   const isCollapsed = sidebarWidth <= MIN_SIDEBAR_WIDTH
 
@@ -58,11 +56,7 @@ export default function ChatInterface() {
     workspaceId: selectedWorkspaceId
   })
 
-  const {
-    data: messages,
-    refetch: refetchMessages,
-    isPending: messagePending
-  } = api.chat.getChatMessagesFromThread.useQuery({
+  const { data: messages, refetch: refetchMessages } = api.chat.getChatMessagesFromThread.useQuery({
     threadId: selectedThreadId
   })
 
@@ -74,10 +68,7 @@ export default function ChatInterface() {
   })
 
   api.chat.useChatSubscription.useSubscription(undefined, {
-    onData: (data) => {
-      if (data.notificationType === 'NEW_MESSAGE') {
-      } else if (data.notificationType === 'NEW_THREAD') {
-      }
+    onData: (_) => {
       refetchThreads()
       refetchMessages()
     }
@@ -129,7 +120,7 @@ export default function ChatInterface() {
             </div>
           </div>
           {/* <div className="flex-1 overflow-auto"> */}
-          <ScrollArea className="max-h-[69rem]">
+          <ScrollArea className="max-h-[49rem]">
             {threadDataPending && !threadsData && (
               <>
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -145,7 +136,7 @@ export default function ChatInterface() {
                 <div
                   key={thread.thread.id}
                   onClick={async () => {
-                    updateSelectedThreadId(thread.thread.id)
+                    setSelectedThreadId(thread.thread.id)
                     await markThreadAsRead.mutateAsync({ threadId: thread.thread.id })
                   }}
                   className={`group flex cursor-pointer flex-col gap-2 p-4 transition-colors hover:bg-zinc-900 ${
@@ -207,7 +198,7 @@ export default function ChatInterface() {
                   {messages && messages?.messages?.length > 0 ? (
                     <>{format(messages?.lastMessageTime ?? '', 'h:mm a')}</>
                   ) : (
-                    ''
+                    <Skeleton className="h-5 w-full" />
                   )}
                 </div>
               </div>
@@ -226,7 +217,7 @@ export default function ChatInterface() {
           </div>
 
           {/* Messages */}
-          <ScrollArea className="max-h-[60rem] min-h-[60rem]">
+          <ScrollArea className="max-h-[50rem] min-h-[50rem]">
             <div className="flex-1 space-y-4 overflow-auto p-4">
               {messages?.messages &&
                 messages.messages.map((message) => (

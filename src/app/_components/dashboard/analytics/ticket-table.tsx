@@ -14,6 +14,7 @@ import { useThreadStore } from '~/hooks/store/useThread'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { useRouter } from 'next/navigation'
 import { type ThreadStatus } from '~/server/db/types'
+import { useChatStore } from '~/app/_components/chat/useChatStore'
 
 type BaseTicketInfo = {
   id: string
@@ -134,9 +135,9 @@ export function RecentChatThreadsTable() {
       enabled: selectedWorkspaceId !== ''
     }
   )
-  const { updateSelectedThreadId } = useThreadStore()
+  const { setSelectedThreadId } = useChatStore()
   function handleSelectRow(threadId: string): void {
-    updateSelectedThreadId(threadId)
+    setSelectedThreadId(threadId)
     router.push(`/dashboard/chat`)
   }
 
