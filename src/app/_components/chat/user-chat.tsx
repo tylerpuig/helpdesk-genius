@@ -20,10 +20,20 @@ import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { useSession } from 'next-auth/react'
 // format date since
 import { useThreadStore } from '~/hooks/store/useThread'
-import { format } from 'date-fns'
+import { format, formatDistanceToNow } from 'date-fns'
+import { Skeleton } from '~/components/ui/skeleton'
 
 const MIN_SIDEBAR_WIDTH = 80
 const DEFAULT_SIDEBAR_WIDTH = 280
+
+function formatDate(date: Date) {
+  const fmt = formatDistanceToNow(date, {
+    addSuffix: true
+  })
+
+  // Replace both "less than" and "about" prefixes
+  return fmt.replace('less than ', '').replace('about ', '')
+}
 
 export default function ChatInterface() {
   const { data: session } = useSession()
@@ -40,27 +50,42 @@ export default function ChatInterface() {
 
   const isCollapsed = sidebarWidth <= MIN_SIDEBAR_WIDTH
 
-  const { data: threadsData, refetch: refetchThreads } = api.chat.getChatThreads.useQuery({
+  const {
+    data: threadsData,
+    refetch: refetchThreads,
+    isPending: threadDataPending
+  } = api.chat.getChatThreads.useQuery({
     workspaceId: selectedWorkspaceId
+  })
+
+  const {
+    data: messages,
+    refetch: refetchMessages,
+    isPending: messagePending
+  } = api.chat.getChatMessagesFromThread.useQuery({
+    threadId: selectedThreadId
   })
 
   const sendChatMessage = api.chat.sendChatMessage.useMutation({
     onSuccess: () => {
       refetchMessages()
+      refetchThreads()
     }
-  })
-
-  const { data: messages, refetch: refetchMessages } = api.chat.getChatMessagesFromThread.useQuery({
-    threadId: selectedThreadId
   })
 
   api.chat.useChatSubscription.useSubscription(undefined, {
     onData: (data) => {
       if (data.notificationType === 'NEW_MESSAGE') {
-        refetchMessages()
       } else if (data.notificationType === 'NEW_THREAD') {
-        refetchThreads()
       }
+      refetchThreads()
+      refetchMessages()
+    }
+  })
+
+  const markThreadAsRead = api.chat.markChatThreadAsRead.useMutation({
+    onSuccess: () => {
+      refetchThreads()
     }
   })
 
@@ -105,30 +130,60 @@ export default function ChatInterface() {
           </div>
           {/* <div className="flex-1 overflow-auto"> */}
           <ScrollArea className="max-h-[69rem]">
+            {threadDataPending && !threadsData && (
+              <>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex flex-col gap-2 border-t border-zinc-800 p-4">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                ))}
+              </>
+            )}
             {threadsData &&
               threadsData.map((thread) => (
                 <div
                   key={thread.thread.id}
-                  onClick={() => {
+                  onClick={async () => {
                     updateSelectedThreadId(thread.thread.id)
+                    await markThreadAsRead.mutateAsync({ threadId: thread.thread.id })
                   }}
-                  className="flex cursor-pointer items-center gap-3 p-4 hover:bg-zinc-900"
+                  className={`group flex cursor-pointer flex-col gap-2 p-4 transition-colors hover:bg-zinc-900 ${
+                    selectedThreadId === thread.thread.id ? 'bg-zinc-900' : ''
+                  }`}
                 >
-                  {/* <Avatar className="h-10 w-10 border-2 border-orange-500"> */}
-                  <User className="h-10 w-10 rounded-full border-2 border-purple-800" />
-                  {/* <AvatarImage src={faker.image.avatar()} /> */}
-                  {/* <AvatarFallback>{''}</AvatarFallback> */}
-                  {/* </Avatar> */}
-                  {!isCollapsed && (
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-white">
-                        {thread?.latestMessage?.senderName}
+                  <div className="flex items-start gap-3">
+                    <User className="h-10 w-10 shrink-0 rounded-full border-2 border-purple-800 bg-zinc-800 p-1" />
+
+                    {!isCollapsed && (
+                      <div className="min-w-0 flex-1 space-y-1">
+                        {/* Header row with name, unread indicator, and time */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white">
+                              {thread?.latestMessage?.senderName || 'Unknown'}
+                            </span>
+                            {thread.thread.isUnread && (
+                              <div className="h-2 w-2 rounded-full bg-purple-500" />
+                            )}
+                          </div>
+                          <span className="text-xs text-zinc-500">
+                            {thread?.latestMessage?.createdAt
+                              ? formatDate(thread.latestMessage.createdAt)
+                              : ''}
+                          </span>
+                        </div>
+
+                        {/* Thread title */}
+                        <div className="text-sm text-zinc-400">{thread?.thread.title}</div>
+
+                        {/* Message preview */}
+                        <div className="line-clamp-1 text-sm text-zinc-500">
+                          {thread?.latestMessage?.content || 'No messages yet'}
+                        </div>
                       </div>
-                      {/* {thread.status && (
-                        <div className="text-sm text-zinc-400">{thread.status}</div>
-                      )} */}
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))}
           </ScrollArea>
@@ -171,7 +226,6 @@ export default function ChatInterface() {
           </div>
 
           {/* Messages */}
-
           <ScrollArea className="max-h-[60rem] min-h-[60rem]">
             <div className="flex-1 space-y-4 overflow-auto p-4">
               {messages?.messages &&
@@ -189,7 +243,7 @@ export default function ChatInterface() {
                     <div
                       className={`max-w-md rounded-2xl px-4 py-2 ${
                         message.role !== 'customer'
-                          ? 'bg-white text-zinc-900'
+                          ? 'bg-blue-800 text-white'
                           : 'bg-zinc-800 text-white'
                       }`}
                     >
@@ -208,6 +262,11 @@ export default function ChatInterface() {
             <MessageInput
               value={chatMessage}
               className="text-md"
+              placeholder={
+                selectedThread
+                  ? `Reply to ${selectedThread?.latestMessage?.senderName ?? ''}...`
+                  : 'Start a new chat...'
+              }
               onKeyDown={async (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()

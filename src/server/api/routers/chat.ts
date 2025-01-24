@@ -34,6 +34,11 @@ export const chatRouter = createTRPCRouter({
           senderEmail: ctx.session?.user?.email ?? '',
           senderName: ctx.session?.user?.name ?? ''
         })
+
+        await tx
+          .update(schema.threadsTable)
+          .set({ isUnread: false })
+          .where(eq(schema.threadsTable.id, input.threadId))
       })
       return { success: true }
     }),
@@ -46,6 +51,7 @@ export const chatRouter = createTRPCRouter({
           maxCreatedAt: sql`MAX(${schema.messagesTable.createdAt})`.as('maxCreatedAt')
         })
         .from(schema.messagesTable)
+        .where(eq(schema.messagesTable.role, 'customer'))
         .groupBy(schema.messagesTable.threadId)
         .as('latest_messages')
 
@@ -139,5 +145,13 @@ export const chatRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const threads = await dbQueryUtils.getRecentChatThreads(input.workspaceId)
       return threads
+    }),
+  markChatThreadAsRead: protectedProcedure
+    .input(z.object({ threadId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db
+        .update(schema.threadsTable)
+        .set({ isUnread: false })
+        .where(eq(schema.threadsTable.id, input.threadId))
     })
 })

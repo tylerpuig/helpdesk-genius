@@ -224,13 +224,15 @@ export async function createNewUser(email: string, name: string, password: strin
   }
 }
 
-export async function createNewChat(workspaceId: string) {
+export async function createNewChat(workspaceId: string, message: string) {
   try {
+    const threadTitle = await openaiUtils.generateChatThreadTitle(message)
     const [chat] = await db
       .insert(schema.threadsTable)
       .values({
         workspaceId,
-        channel: 'chat'
+        channel: 'chat',
+        title: threadTitle
       })
       .returning()
 
@@ -256,6 +258,9 @@ export async function createNewChatMessage(
         senderName: userInfo?.name ?? ''
       })
       .returning()
+
+    // mark thre thread as unread
+    await updateIsThreadRead(threadId, true)
 
     return message
   } catch (error) {

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     let threadId = chatCache.get(chatId)
 
     if (!threadId) {
-      const newChat = await dbInsertionUtils.createNewChat(workspaceId)
+      const newChat = await dbInsertionUtils.createNewChat(workspaceId, message)
       const subMessage: EventEmitterChatMessage = {
         notificationType: 'NEW_THREAD'
       }
