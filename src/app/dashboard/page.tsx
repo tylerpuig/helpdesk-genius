@@ -2,7 +2,10 @@
 import { StatCard } from '~/app/_components/dashboard/analytics/ticket-stat-card'
 import { TicketLineChart } from '~/app/_components/dashboard/analytics/tickets-line-chart'
 import { TicketPieChart } from '~/app/_components/dashboard/analytics/ticket-pie-chart'
-import { TicketTable } from '~/app/_components/dashboard/analytics/ticket-table'
+import {
+  RecentTicketsTable,
+  RecentChatThreadsTable
+} from '~/app/_components/dashboard/analytics/ticket-table'
 import { ticketTypes } from '~/app/_components/dashboard/analytics/data'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { api } from '~/trpc/react'
@@ -61,7 +64,10 @@ function Dashboard() {
         <TicketLineChart />
         <TicketPieChart data={ticketTypes} />
       </div>
-      <TicketTable />
+      <div className="space-y-4">
+        <RecentTicketsTable />
+        <RecentChatThreadsTable />
+      </div>
     </div>
   )
 }

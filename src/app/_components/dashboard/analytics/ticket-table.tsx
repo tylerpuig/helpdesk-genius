@@ -13,29 +13,33 @@ import { Skeleton } from '~/components/ui/skeleton'
 import { useThreadStore } from '~/hooks/store/useThread'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { useRouter } from 'next/navigation'
+import { type ThreadStatus } from '~/server/db/types'
 
-export function TicketTable() {
-  const router = useRouter()
-  const { selectedWorkspaceId } = useWorkspace()
-  const { data: tickets, isPending } = api.metrics.getRecentTickets.useQuery(
-    {
-      workspaceId: selectedWorkspaceId
-    },
-    {
-      enabled: selectedWorkspaceId !== ''
-    }
-  )
-  const { updateSelectedThreadId } = useThreadStore()
+type BaseTicketInfo = {
+  id: string
+  title: string | null
+  priority: string
+  status: ThreadStatus
+  createdAt: Date
+}
 
-  function handleSelectRow(threadId: string): void {
-    updateSelectedThreadId(threadId)
-    router.push(`/dashboard/tickets`)
-  }
+type TicketTableProps<T extends BaseTicketInfo> = {
+  tickets: T[]
+  handleSelectRow: (threadId: string) => void
+  isPending: boolean
+  title: string
+}
 
+export function TicketTable({
+  tickets,
+  handleSelectRow,
+  isPending,
+  title
+}: TicketTableProps<BaseTicketInfo>) {
   return (
     <Card className="col-span-4">
       <CardHeader>
-        <CardTitle>Recent Tickets</CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
@@ -89,5 +93,59 @@ export function TicketTable() {
         </Table>
       </CardContent>
     </Card>
+  )
+}
+
+export function RecentTicketsTable() {
+  const router = useRouter()
+  const { selectedWorkspaceId } = useWorkspace()
+  const { data: tickets, isPending } = api.metrics.getRecentTickets.useQuery(
+    {
+      workspaceId: selectedWorkspaceId
+    },
+    {
+      enabled: selectedWorkspaceId !== ''
+    }
+  )
+  const { updateSelectedThreadId } = useThreadStore()
+  function handleSelectRow(threadId: string): void {
+    updateSelectedThreadId(threadId)
+    router.push(`/dashboard/tickets`)
+  }
+
+  return (
+    <TicketTable
+      tickets={tickets ?? []}
+      handleSelectRow={handleSelectRow}
+      isPending={isPending}
+      title="Recent Tickets"
+    />
+  )
+}
+
+export function RecentChatThreadsTable() {
+  const router = useRouter()
+  const { selectedWorkspaceId } = useWorkspace()
+  const { data: threads, isPending } = api.chat.getRecentChatThreads.useQuery(
+    {
+      workspaceId: selectedWorkspaceId
+    },
+    {
+      enabled: selectedWorkspaceId !== ''
+    }
+  )
+  const { updateSelectedThreadId } = useThreadStore()
+  function handleSelectRow(threadId: string): void {
+    updateSelectedThreadId(threadId)
+    router.push(`/dashboard/chat`)
+  }
+
+  return (
+    <TicketTable
+      tickets={threads ?? []}
+      handleSelectRow={handleSelectRow}
+      isPending={isPending}
+      title="Recent Chats"
+    />
   )
 }

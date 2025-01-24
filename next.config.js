@@ -8,7 +8,8 @@ import './src/env.js'
 const config = {
   eslint: {
     ignoreDuringBuilds: true
-  }
+  },
+  logging: false
 }
 
 export default config

@@ -88,3 +88,28 @@ export async function generateEmailMessageReply(messageId: string) {
     console.error(error)
   }
 }
+
+export async function generateChatThreadTitle(message: string): Promise<string> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You need to come up with a title for a chat thread. The title should be short and concise. Don't include any placeholders, instead you can come up with a fake signature. Do not include a personal name with the title.`
+        },
+        {
+          role: 'user',
+          content: `Write title for: ${message}`
+        }
+      ]
+    })
+
+    const title = response?.choices?.[0]?.message?.content ?? ''
+    return title
+  } catch (error) {
+    console.error(error)
+  }
+
+  return ''
+}

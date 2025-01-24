@@ -1,6 +1,6 @@
 import * as schema from '~/server/db/schema'
 import { db } from '~/server/db'
-import { eq, sql } from 'drizzle-orm'
+import { desc, eq, sql, asc } from 'drizzle-orm'
 import { type TRPCContext } from '~/server/api/trpc'
 import * as openaiUtils from '~/server/integrations/openai'
 import bcrypt from 'bcrypt'
@@ -221,5 +221,49 @@ export async function createNewUser(email: string, name: string, password: strin
     return user
   } catch (error) {
     console.error('createUser', error)
+  }
+}
+
+export async function createNewChat(workspaceId: string, message: string) {
+  try {
+    const threadTitle = await openaiUtils.generateChatThreadTitle(message)
+    const [chat] = await db
+      .insert(schema.threadsTable)
+      .values({
+        workspaceId,
+        channel: 'chat',
+        title: threadTitle
+      })
+      .returning()
+
+    return chat
+  } catch (error) {
+    console.error('createNewChat', error)
+  }
+}
+
+export async function createNewChatMessage(
+  threadId: string,
+  content: string,
+  userInfo: { name: string; email: string }
+) {
+  try {
+    const [message] = await db
+      .insert(schema.messagesTable)
+      .values({
+        threadId,
+        content: content,
+        role: 'customer',
+        senderEmail: userInfo?.email ?? '',
+        senderName: userInfo?.name ?? ''
+      })
+      .returning()
+
+    // mark thre thread as unread
+    await updateIsThreadRead(threadId, true)
+
+    return message
+  } catch (error) {
+    console.error('createNewChatMessage', error)
   }
 }

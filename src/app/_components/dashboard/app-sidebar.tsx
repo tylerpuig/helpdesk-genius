@@ -12,7 +12,8 @@ import {
   PieChart,
   Settings2,
   SquareTerminal,
-  Mail
+  Mail,
+  MessageCircle
 } from 'lucide-react'
 
 import { NavMain } from '~/app/_components/dashboard/nav-main'
@@ -62,20 +63,11 @@ const data = {
       title: 'Tickets',
       url: '/dashboard/tickets',
       icon: Mail
-      // items: [
-      //   {
-      //     title: 'Genesis',
-      //     url: '#'
-      //   },
-      //   {
-      //     title: 'Explorer',
-      //     url: '#'
-      //   },
-      //   {
-      //     title: 'Quantum',
-      //     url: '#'
-      //   }
-      // ]
+    },
+    {
+      title: 'Chat',
+      url: '/dashboard/chat',
+      icon: MessageCircle
     },
     {
       title: 'Knowledge Base',
@@ -114,12 +106,8 @@ const data = {
           url: '/dashboard/team'
         },
         {
-          title: 'Billing',
-          url: '#'
-        },
-        {
-          title: 'Limits',
-          url: '#'
+          title: 'Chat',
+          url: '/dashboard/chat/settings'
         }
       ]
     }
