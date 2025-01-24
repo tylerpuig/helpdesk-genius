@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   MemberAreaChart,
   type UserMetricKeys
 } from '~/app/_components/dashboard/analytics/team/area-chart'
 import { Select, SelectItem, SelectTrigger, SelectContent } from '~/components/ui/select'
 import { api } from '~/trpc/react'
-import { useSession } from 'next-auth/react'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { type DailyUserMetric } from '~/server/db/utils/metrics'
 
@@ -52,9 +51,17 @@ const charts: {
     title: 'Customer Messages'
   }
 ]
+
+const daysDurationOptions = [
+  { value: 3, label: '3 Days' },
+  { value: 7, label: '7 Days' },
+  { value: 14, label: '14 Days' },
+  { value: 30, label: '30 Days' }
+]
 export default function ViewMemmberAnalytics() {
   const { selectedWorkspaceId } = useWorkspace()
   const [selectedMemberUserId, setSelectedMemberUserId] = useState('')
+  const [daysDuration, setDaysDuration] = useState(30)
 
   const { data: members } = api.workspace.getTeamMembersForAnalytics.useQuery({
     workspaceId: selectedWorkspaceId
@@ -63,7 +70,7 @@ export default function ViewMemmberAnalytics() {
   const { data: dailyUserMetrics } = api.metrics.getDailyUserMetrics.useQuery(
     {
       workspaceId: selectedWorkspaceId,
-      days: 30,
+      days: daysDuration,
       userId: selectedMemberUserId
     },
     {
@@ -71,23 +78,34 @@ export default function ViewMemmberAnalytics() {
     }
   )
 
-  const selectedUser = members?.find((member) => member.userId === selectedMemberUserId)
+  const previousMetricsRef = useRef<DailyUserMetric[]>([])
+  const metrics = useMemo(() => {
+    if (dailyUserMetrics) {
+      previousMetricsRef.current = dailyUserMetrics
+      return dailyUserMetrics
+    }
+    return previousMetricsRef.current
+  }, [dailyUserMetrics])
 
-  if (dailyUserMetrics) {
-    console.log(dailyUserMetrics)
-  }
+  const selectedUser = members?.find((member) => member.userId === selectedMemberUserId)
+  const selectedDaysDuration = daysDurationOptions.find((option) => option.value === daysDuration)
 
   return (
     <div className="px-4">
       <div className="flex items-center justify-between">
         <h1 className="mb-8 text-3xl font-bold">Team Analytics</h1>
         <div className="flex gap-4">
-          <Select>
-            <SelectTrigger className="w-[120px]">Test</SelectTrigger>
+          <Select
+            value={selectedDaysDuration?.value.toString()}
+            onValueChange={(val) => setDaysDuration(Number(val))}
+          >
+            <SelectTrigger className="w-[120px]">{selectedDaysDuration?.label}</SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              {daysDurationOptions.map((el) => (
+                <SelectItem key={el.value} value={el.value.toString()}>
+                  {el.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select
@@ -113,9 +131,10 @@ export default function ViewMemmberAnalytics() {
           <MemberAreaChart
             title={el.title}
             key={el.title}
-            data={dailyUserMetrics ?? []}
+            data={metrics}
             mainKey={el.mainKey}
             subKey={el.subKey}
+            description={`Showing total ${el.title} for the last ${daysDuration} days`}
           />
         ))}
       </div>

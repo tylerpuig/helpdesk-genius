@@ -1,6 +1,6 @@
 import { db } from './dbInstance.mjs'
 import OpenAI from 'openai'
-import { eq } from 'drizzle-orm'
+import { eq, sql, and } from 'drizzle-orm'
 import * as schema from '../src/server/db/schema'
 import dotenv from 'dotenv'
 
@@ -179,7 +179,7 @@ async function getAllContacts() {
   }
 }
 
-generateNewThreads(4)
+generateNewThreads(10)
 
 async function generateNewThreads(amount: number) {
   try {
@@ -194,69 +194,341 @@ async function generateNewThreads(amount: number) {
       return
     }
 
+    const users = await getAllUsers()
+    if (!users) {
+      console.log('No users found after inserting')
+      return
+    }
+
     for (let i = 0; i < amount; i++) {
-      for (const randomContact of currentContacts) {
-        const topic = topics[Math.floor(Math.random() * topics.length)]
-        // const randomContact = currentContacts[Math.floor(Math.random() * currentContacts.length)]
+      const randomContact = currentContacts[Math.floor(Math.random() * currentContacts.length)]
+      // for (const randomContact of currentContacts) {
+      const topic = topics[Math.floor(Math.random() * topics.length)]
+      // const randomContact = currentContacts[Math.floor(Math.random() * currentContacts.length)]
 
-        const randomDate = new Date()
-        const randInt = Math.floor(Math.random() * 7)
-        randomDate.setDate(randomDate.getDate() - randInt)
+      const randomDate = new Date()
+      const randInt = Math.floor(Math.random() * 7)
+      randomDate.setDate(randomDate.getDate() - randInt)
 
-        // Create thread
-        const [thread] = await db
-          .insert(schema.threadsTable)
-          .values({
-            title: `${randomContact.name} - ${topic}`,
-            status: 'open',
-            priority: Math.random() > 0.7 ? 'high' : 'low',
-            channel: 'email',
-            createdAt: randomDate,
-            workspaceId: WORKSPACE_ID
-          })
-          .returning()
+      // Create thread
+      const [thread] = await db
+        .insert(schema.threadsTable)
+        .values({
+          title: `${randomContact.name} - ${topic}`,
+          status: 'open',
+          priority: Math.random() > 0.7 ? 'high' : 'low',
+          channel: 'email',
+          createdAt: randomDate,
+          workspaceId: WORKSPACE_ID
+        })
+        .returning()
 
-        // Generate initial customer message using OpenAI
-        const newMessage = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a customer writing an initial email about a specific topic. Write a realistic, brief email. Don't include any placeholders, instead you can come up with a fake signature.`
-            },
-            {
-              role: 'user',
-              content: `Write an initial email about: ${topic}
+      // Generate initial customer message using OpenAI
+      const newMessage = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a customer writing an initial email about a specific topic. Write a realistic, brief email. Don't include any placeholders, instead you can come up with a fake signature.`
+          },
+          {
+            role: 'user',
+            content: `Write an initial email about: ${topic}
             
             Your name: ${randomContact.name}
             Your email: ${randomContact.email}
             Your company: ${randomContact.company}
             `
-            }
-          ]
-        })
+          }
+        ]
+      })
 
-        console.log(newMessage.choices[0].message.content)
+      const messageContent = newMessage.choices[0].message.content ?? ''
+      console.log(messageContent)
 
-        // const messageDate = new Date()
-        // Save the customer's message
-        await db.insert(schema.messagesTable).values({
-          threadId: thread.id,
-          content: newMessage.choices[0].message.content ?? '',
-          senderEmail: randomContact.email,
-          senderName: randomContact.name,
-          role: 'customer',
-          createdAt: randomDate
-        })
+      // const messageDate = new Date()
+      // Save the customer's message
+      await db.insert(schema.messagesTable).values({
+        threadId: thread.id,
+        content: messageContent,
+        senderEmail: randomContact.email,
+        senderName: randomContact.name,
+        role: 'customer',
+        createdAt: randomDate
+      })
 
-        // update the thread with the latest message date
-        await db
-          .update(schema.threadsTable)
-          .set({ lastMessageAt: randomDate })
-          .where(eq(schema.threadsTable.id, thread.id))
+      // update the thread with the latest message date
+      await db
+        .update(schema.threadsTable)
+        .set({ lastMessageAt: randomDate })
+        .where(eq(schema.threadsTable.id, thread.id))
+
+      // select a random user to send a reply
+      const randomUser = users[Math.floor(Math.random() * users.length)]
+      if (thread) {
+        await createNewEmailMessageReply(thread.id, messageContent, WORKSPACE_ID, randomUser.id)
+
+        const randInt = Math.floor(Math.random() * 11)
+        if (randInt < 5) {
+          await markThreadAsResolved(randomUser.id, thread.id)
+        }
       }
+      // }
     }
   } catch (error) {
     console.error('generateNewThreads', error)
+  }
+}
+
+async function getAllUsers() {
+  try {
+    const users = await db.query.users.findMany({
+      columns: {
+        id: true,
+        name: true,
+        email: true
+      }
+    })
+    return users
+  } catch (error) {
+    console.error('getAllUsers', error)
+  }
+}
+
+export async function createNewEmailMessageReply(
+  threadId: string,
+  messageContent: string,
+  workspaceId: string,
+  userId: string
+) {
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(schema.users.id, userId)
+    })
+    const thread = await db.query.threadsTable.findFirst({
+      where: eq(schema.threadsTable.id, threadId)
+    })
+
+    // Calculate response time in seconds
+    const responseTimeInSeconds = thread
+      ? Math.floor((Date.now() - thread.createdAt.getTime()) / 1000)
+      : undefined
+
+    const messageCreationDate = new Date()
+
+    const [newMessage] = await db
+      .insert(schema.messagesTable)
+      .values({
+        threadId: threadId,
+        content: messageContent,
+        senderEmail: user?.email ?? '',
+        senderName: user?.name ?? '',
+        role: 'agent',
+        createdAt: messageCreationDate,
+        isUnread: false
+      })
+      .returning({
+        id: schema.messagesTable.id
+      })
+
+    // Mark thread as read
+    await db
+      .update(schema.threadsTable)
+      .set({ isUnread: false })
+      .where(eq(schema.threadsTable.id, threadId))
+
+    if (thread) {
+      // update user metrics
+      await updateUserMetrics({
+        userId: user?.id ?? '',
+        threadId: threadId,
+        isFirstResponse: thread.agentMessageCount === 0,
+        responseTimeInSeconds,
+        lastMessageAt: messageCreationDate,
+        workspaceId
+      })
+    }
+  } catch (error) {
+    console.error('createNewEmailMessageReply', error)
+  }
+}
+
+type UpdateMetricsParams = {
+  userId: string
+  threadId: string
+  isFirstResponse: boolean
+  responseTimeInSeconds?: number
+  lastMessageAt: Date
+  workspaceId: string
+}
+
+export async function updateUserMetrics({
+  userId,
+  threadId,
+  isFirstResponse,
+  responseTimeInSeconds,
+  lastMessageAt,
+  workspaceId
+}: UpdateMetricsParams) {
+  try {
+    const randInt = Math.floor(Math.random() * 8)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    today.setDate(today.getDate() - randInt)
+
+    // Start a transaction to ensure all updates are atomic
+    await db.transaction(async (tx) => {
+      // 1. Update or create daily metrics
+      const dailyMetrics = await tx
+        .insert(schema.userDailyMetricsTable)
+        .values({
+          userId,
+          workspaceId,
+          date: today,
+          responseCount: 1,
+          agentMessageCount: 1,
+          ...(isFirstResponse && responseTimeInSeconds
+            ? {
+                averageFirstResponseTime: responseTimeInSeconds
+              }
+            : {})
+        })
+        .onConflictDoUpdate({
+          target: [
+            schema.userDailyMetricsTable.workspaceId,
+            schema.userDailyMetricsTable.userId,
+            schema.userDailyMetricsTable.date
+          ],
+          set: {
+            responseCount: sql`${schema.userDailyMetricsTable.responseCount} + 1`,
+            agentMessageCount: sql`${schema.userDailyMetricsTable.agentMessageCount} + 1`,
+            ...(isFirstResponse && responseTimeInSeconds
+              ? {
+                  averageFirstResponseTime: sql`
+                  (${schema.userDailyMetricsTable.averageFirstResponseTime} *
+                   ${schema.userDailyMetricsTable.threadsAssigned} + ${responseTimeInSeconds}) /
+                  (${schema.userDailyMetricsTable.threadsAssigned} + 1)
+                `
+                }
+              : {}),
+            totalResponseTime: sql`${schema.userDailyMetricsTable.totalResponseTime} + ${
+              responseTimeInSeconds || 0
+            }`
+          }
+        })
+        .returning()
+
+      // 2. Update user's overall stats
+      await tx
+        .insert(schema.userStatsTable)
+        .values({
+          workspaceId,
+          userId,
+          totalAgentMessages: 1,
+          lastActiveAt: new Date(),
+          ...(isFirstResponse && responseTimeInSeconds
+            ? {
+                averageFirstResponseTime: responseTimeInSeconds
+              }
+            : {})
+        })
+        .onConflictDoUpdate({
+          target: [schema.userStatsTable.userId, schema.userStatsTable.workspaceId],
+          set: {
+            totalAgentMessages: sql`${schema.userStatsTable.totalAgentMessages} + 1`,
+            lastActiveAt: new Date(),
+            ...(isFirstResponse && responseTimeInSeconds
+              ? {
+                  averageFirstResponseTime: sql`
+            (${schema.userStatsTable.averageFirstResponseTime} *
+             ${schema.userStatsTable.totalThreadsHandled} + ${responseTimeInSeconds}) /
+            (${schema.userStatsTable.totalThreadsHandled} + 1)
+            `
+                }
+              : {}),
+            averageResponseTime: sql`
+      (${schema.userStatsTable.averageResponseTime} * ${schema.userStatsTable.totalAgentMessages} + ${
+        responseTimeInSeconds || 0
+      }) / (${schema.userStatsTable.totalAgentMessages} + 1)
+      `
+          }
+        })
+
+      // 3. Update thread metrics
+      await tx
+        .update(schema.threadsTable)
+        .set({
+          messageCount: sql`${schema.threadsTable.messageCount} + 1`,
+          agentMessageCount: sql`${schema.threadsTable.agentMessageCount} + 1`,
+          lastMessageAt: lastMessageAt,
+          ...(isFirstResponse && responseTimeInSeconds
+            ? {
+                firstResponseTime: responseTimeInSeconds
+              }
+            : {})
+        })
+        .where(eq(schema.threadsTable.id, threadId))
+
+      return dailyMetrics
+    })
+  } catch (error) {
+    console.error('updateUserMetrics', error)
+  }
+}
+
+export async function incrementUserResolvedThread(
+  userId: string,
+  workspaceId: string
+): Promise<void> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  try {
+    await db
+      .update(schema.userStatsTable)
+      .set({
+        totalThreadsResolved: sql`${schema.userStatsTable.totalThreadsResolved} + 1`,
+        totalThreadsHandled: sql`${schema.userStatsTable.totalThreadsHandled} + 1`
+      })
+      .where(
+        and(
+          eq(schema.userStatsTable.userId, userId),
+          eq(schema.userStatsTable.workspaceId, workspaceId)
+        )
+      )
+
+    await db
+      .insert(schema.userDailyMetricsTable)
+      .values({
+        userId,
+        workspaceId,
+        date: today,
+        threadsResolved: 1
+      })
+      .onConflictDoUpdate({
+        target: [
+          schema.userDailyMetricsTable.workspaceId,
+          schema.userDailyMetricsTable.userId,
+          schema.userDailyMetricsTable.date
+        ],
+        set: {
+          threadsResolved: sql`${schema.userDailyMetricsTable.threadsResolved} + 1`
+        }
+      })
+  } catch (error) {
+    console.error('incrementUserResolvedThread', error)
+  }
+}
+
+async function markThreadAsResolved(userId: string, threadId: string) {
+  try {
+    await db
+      .update(schema.threadsTable)
+      .set({ status: 'closed' })
+      .where(eq(schema.threadsTable.id, threadId))
+
+    await incrementUserResolvedThread(userId, WORKSPACE_ID)
+  } catch (err) {
+    console.error(err)
   }
 }

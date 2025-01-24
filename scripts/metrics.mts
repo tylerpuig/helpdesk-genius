@@ -362,12 +362,6 @@ async function run() {
   })
   console.log(dailyMetrics)
 
-  //   const last30DaysMetrics = await getUserMetrics({
-  //     userId: 'user123',
-  //     workspaceId: 'workspace123',
-  //     days: 30
-  // })
-
   console.log(last7DaysMetrics)
 }
 // run()

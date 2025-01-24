@@ -51,15 +51,21 @@ export default function UserManagementTable() {
   const { selectedWorkspaceId } = useWorkspace()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
-  const { data: teamMembers, isPending } = api.workspace.getTeamMembers.useQuery({
+  const { data, isPending } = api.workspace.getTeamMembers.useQuery({
     workspaceId: selectedWorkspaceId
   })
+
+  const { members: teamMembers, role } = data ?? {}
 
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between">
         <h1 className="mb-4 text-2xl font-bold">Team Management</h1>
-        <AddUserDialog isAddDialogOpen={isAddDialogOpen} setIsAddDialogOpen={setIsAddDialogOpen} />
+        <AddUserDialog
+          isAddDialogOpen={isAddDialogOpen}
+          setIsAddDialogOpen={setIsAddDialogOpen}
+          role={role}
+        />
       </div>
       <Table>
         <TableHeader className="sticky top-0 bg-gray-900">
@@ -98,7 +104,7 @@ export default function UserManagementTable() {
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
+                      <Button disabled={role === 'member'} variant="ghost" className="h-8 w-8 p-0">
                         <span className="sr-only">Open menu</span>
                         <MoreVertical className="h-4 w-4" />
                       </Button>
@@ -108,6 +114,7 @@ export default function UserManagementTable() {
                         <Pencil className="mr-2 h-4 w-4" />
                         <span>Edit</span>
                       </DropdownMenuItem>
+
                       <DropdownMenuItem>
                         <Trash className="mr-2 h-4 w-4" />
                         <span>Delete</span>
@@ -134,16 +141,18 @@ export function TeamMemberStatus({ status }: { status: WorkspaceInvitationStatus
     case 'expired':
       return <Badge variant="destructive">Expired</Badge>
     default:
-      return <Badge variant="outline">Inactive</Badge>
+      return <Badge variant="teamMemberActive">Active</Badge>
   }
 }
 
 function AddUserDialog({
   isAddDialogOpen,
-  setIsAddDialogOpen
+  setIsAddDialogOpen,
+  role
 }: {
   isAddDialogOpen: boolean
   setIsAddDialogOpen: (isOpen: boolean) => void
+  role: WorkspaceRole | undefined
 }) {
   const { selectedTeamId } = useTeamManagementStore()
   const [newUser, setNewUser] = useState<{ email: string; role: WorkspaceRole }>({
@@ -173,7 +182,7 @@ function AddUserDialog({
         setIsAddDialogOpen(open)
       }}
     >
-      <DialogTrigger asChild>
+      <DialogTrigger asChild disabled={role === 'member'}>
         <Button className="mb-4">Add User</Button>
       </DialogTrigger>
       <DialogContent>

@@ -137,7 +137,10 @@ export const workspaceRouter = createTRPCRouter({
         )
         .where(eq(schema.workspaceMembersTable.workspaceId, input.workspaceId))
 
-      return workspaceMembers
+      return {
+        members: workspaceMembers,
+        role: isTeamMember.role
+      }
     }),
   getTeamInvitations: protectedProcedure
     .input(z.object({ workspaceId: z.string() }))
