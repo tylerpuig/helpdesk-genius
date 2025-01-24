@@ -353,6 +353,70 @@ export const workspaceInvitationsTable = pgTable(
   ]
 )
 
+export const tagsTable = pgTable(
+  'tag',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    workspaceId: varchar('workspace_id', { length: 255 })
+      .notNull()
+      .references(() => workspacesTable.id),
+    name: varchar('name', { length: 100 }).notNull(),
+    color: varchar('color', { length: 7 }).notNull(), // Hex color code
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (tag) => [
+    // Tag names unique per workspace
+    uniqueIndex('tag_workspace_name_idx').on(tag.workspaceId, tag.name),
+    index('tag_workspace_idx').on(tag.workspaceId)
+  ]
+)
+
+// Junction table for thread tags
+export const threadTagsTable = pgTable(
+  'thread_tag',
+  {
+    threadId: varchar('thread_id', { length: 255 })
+      .notNull()
+      .references(() => threadsTable.id),
+    tagId: varchar('tag_id', { length: 255 })
+      .notNull()
+      .references(() => tagsTable.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (threadTag) => [
+    // Combination of threadId and tagId unique
+    primaryKey({ columns: [threadTag.threadId, threadTag.tagId] }),
+    index('thread_tag_thread_idx').on(threadTag.threadId),
+    index('thread_tag_tag_idx').on(threadTag.tagId)
+  ]
+)
+
+export const tagsRelations = relations(tagsTable, ({ one, many }) => ({
+  workspace: one(workspacesTable, {
+    fields: [tagsTable.workspaceId],
+    references: [workspacesTable.id]
+  }),
+  threadTags: many(threadTagsTable)
+}))
+
+export const threadTagsRelations = relations(threadTagsTable, ({ one }) => ({
+  thread: one(threadsTable, {
+    fields: [threadTagsTable.threadId],
+    references: [threadsTable.id]
+  }),
+  tag: one(tagsTable, {
+    fields: [threadTagsTable.tagId],
+    references: [tagsTable.id]
+  })
+}))
+
 export const userDailyMetricsRelations = relations(userDailyMetricsTable, ({ one }) => ({
   user: one(users, { fields: [userDailyMetricsTable.userId], references: [users.id] }),
   workspace: one(workspacesTable, {
@@ -381,7 +445,8 @@ export const workspacesRelations = relations(workspacesTable, ({ many }) => ({
   invitations: many(workspaceInvitationsTable),
   userDailyMetrics: many(userDailyMetricsTable),
   userStats: many(userStatsTable),
-  contacts: many(contactsTable)
+  contacts: many(contactsTable),
+  tags: many(tagsTable)
 }))
 
 export const workspaceMembersRelations = relations(workspaceMembersTable, ({ one }) => ({
@@ -398,7 +463,8 @@ export const threadsRelations = relations(threadsTable, ({ one, many }) => ({
     references: [workspacesTable.id]
   }),
   messages: many(messagesTable),
-  assignments: many(threadAssignmentsTable)
+  assignments: many(threadAssignmentsTable),
+  tags: many(threadTagsTable)
 }))
 
 export const workspaceInvitationsRelations = relations(workspaceInvitationsTable, ({ one }) => ({

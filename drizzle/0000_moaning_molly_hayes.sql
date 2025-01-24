@@ -40,11 +40,26 @@ CREATE TABLE "session" (
 	"expires" timestamp with time zone NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "tag" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"workspace_id" varchar(255) NOT NULL,
+	"name" varchar(100) NOT NULL,
+	"color" varchar(7) NOT NULL,
+	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "thread_assignment" (
 	"thread_id" varchar(255) NOT NULL,
 	"user_id" varchar(255) NOT NULL,
 	"assigned_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	CONSTRAINT "thread_assignment_thread_id_user_id_pk" PRIMARY KEY("thread_id","user_id")
+);
+--> statement-breakpoint
+CREATE TABLE "thread_tag" (
+	"thread_id" varchar(255) NOT NULL,
+	"tag_id" varchar(255) NOT NULL,
+	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	CONSTRAINT "thread_tag_thread_id_tag_id_pk" PRIMARY KEY("thread_id","tag_id")
 );
 --> statement-breakpoint
 CREATE TABLE "thread" (
@@ -141,8 +156,11 @@ ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("
 ALTER TABLE "contact" ADD CONSTRAINT "contact_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "message" ADD CONSTRAINT "message_thread_id_thread_id_fk" FOREIGN KEY ("thread_id") REFERENCES "public"."thread"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tag" ADD CONSTRAINT "tag_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "thread_assignment" ADD CONSTRAINT "thread_assignment_thread_id_thread_id_fk" FOREIGN KEY ("thread_id") REFERENCES "public"."thread"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "thread_assignment" ADD CONSTRAINT "thread_assignment_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "thread_tag" ADD CONSTRAINT "thread_tag_thread_id_thread_id_fk" FOREIGN KEY ("thread_id") REFERENCES "public"."thread"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "thread_tag" ADD CONSTRAINT "thread_tag_tag_id_tag_id_fk" FOREIGN KEY ("tag_id") REFERENCES "public"."tag"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "thread" ADD CONSTRAINT "thread_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_daily_metrics" ADD CONSTRAINT "user_daily_metrics_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_daily_metrics" ADD CONSTRAINT "user_daily_metrics_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -160,8 +178,12 @@ CREATE INDEX "contact_email_idx" ON "contact" USING btree ("email");--> statemen
 CREATE INDEX "message_thread_id_idx" ON "message" USING btree ("thread_id");--> statement-breakpoint
 CREATE INDEX "message_created_at_idx" ON "message" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "session_user_id_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "tag_workspace_name_idx" ON "tag" USING btree ("workspace_id","name");--> statement-breakpoint
+CREATE INDEX "tag_workspace_idx" ON "tag" USING btree ("workspace_id");--> statement-breakpoint
 CREATE INDEX "thread_assignment_thread_idx" ON "thread_assignment" USING btree ("thread_id");--> statement-breakpoint
 CREATE INDEX "thread_assignment_user_idx" ON "thread_assignment" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "thread_tag_thread_idx" ON "thread_tag" USING btree ("thread_id");--> statement-breakpoint
+CREATE INDEX "thread_tag_tag_idx" ON "thread_tag" USING btree ("tag_id");--> statement-breakpoint
 CREATE INDEX "thread_workspace_idx" ON "thread" USING btree ("workspace_id");--> statement-breakpoint
 CREATE INDEX "thread_status_idx" ON "thread" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "thread_last_message_idx" ON "thread" USING btree ("last_message_at");--> statement-breakpoint
