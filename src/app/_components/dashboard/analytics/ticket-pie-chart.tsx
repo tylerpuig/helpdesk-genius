@@ -2,14 +2,38 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import { api } from '~/trpc/react'
+import { useWorkspace } from '~/hooks/context/useWorkspaces'
 
-type PieChartProps = {
-  data: { name: string; value: number }[]
+const COLORS = ['#CF4747', '#E68A5C', '#0088FE']
+
+export const ticketTypes = [
+  { name: 'High Priority', value: 25 },
+  { name: 'Medium Priority', value: 40 },
+  { name: 'Low Priority', value: 35 }
+]
+
+const ticketKeyToRenderText: Record<string, string> = {
+  highPriority: 'High Priority',
+  mediumPriority: 'Medium Priority',
+  lowPriority: 'Low Priority'
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
+export function TicketPieChart() {
+  const { selectedWorkspaceId } = useWorkspace()
+  const { data: ticketCounts } = api.metrics.getTicketCountsByType.useQuery({
+    workspaceId: selectedWorkspaceId
+  })
 
-export function TicketPieChart({ data }: PieChartProps) {
+  const ticketData = ticketCounts ?? ({} as Record<string, string>)
+
+  const results = Object.entries(ticketKeyToRenderText).map(([key, name]) => {
+    return {
+      name,
+      value: ticketData?.[key as keyof typeof ticketData] ?? 0
+    }
+  })
+
   return (
     <Card className="sm:col-span-4 md:col-span-4 lg:col-span-2">
       <CardHeader>
@@ -19,7 +43,7 @@ export function TicketPieChart({ data }: PieChartProps) {
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={data}
+              data={results}
               cx="50%"
               cy="50%"
               labelLine={false}
@@ -28,7 +52,7 @@ export function TicketPieChart({ data }: PieChartProps) {
               dataKey="value"
               isAnimationActive={false}
             >
-              {data.map((entry, index) => (
+              {results.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
-import { and, eq, desc, asc } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import * as schema from '~/server/db/schema'
 import * as dbQueryUtils from '~/server/db/utils/queries'
 import * as dbMetricsUtils from '~/server/db/utils/metrics'
@@ -49,5 +49,41 @@ export const metricsRouter = createTRPCRouter({
       })
 
       return metrics
+    }),
+  getTicketCountsByType: protectedProcedure
+    .input(z.object({ workspaceId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const [result] = await ctx.db
+        .select({
+          lowPriority: ctx.db.$count(
+            schema.threadsTable,
+            and(
+              eq(schema.threadsTable.workspaceId, input.workspaceId),
+              eq(schema.threadsTable.priority, 'low')
+            )
+          ),
+          mediumPriority: ctx.db.$count(
+            schema.threadsTable,
+            and(
+              eq(schema.threadsTable.workspaceId, input.workspaceId),
+              eq(schema.threadsTable.priority, 'medium')
+            )
+          ),
+          highPriority: ctx.db.$count(
+            schema.threadsTable,
+            and(
+              eq(schema.threadsTable.workspaceId, input.workspaceId),
+              eq(schema.threadsTable.priority, 'high')
+            )
+          ),
+          total: ctx.db.$count(
+            schema.threadsTable,
+            eq(schema.threadsTable.workspaceId, input.workspaceId)
+          )
+        })
+        .from(schema.threadsTable)
+        .limit(1)
+
+      return result
     })
 })

@@ -6,7 +6,6 @@ import {
   RecentTicketsTable,
   RecentChatThreadsTable
 } from '~/app/_components/dashboard/analytics/ticket-table'
-import { ticketTypes } from '~/app/_components/dashboard/analytics/data'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { api } from '~/trpc/react'
 import { NewWorkspaceDialog } from '~/app/_components/dashboard/workspace-switcher'
@@ -55,14 +54,14 @@ function Dashboard() {
         />
         <StatCard
           isLoading={isPending}
-          value={94}
+          value={89}
           title="Customer Satisfaction"
           description="Percentage"
         />
       </div>
       <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <TicketLineChart />
-        <TicketPieChart data={ticketTypes} />
+        <TicketPieChart />
       </div>
       <div className="space-y-4">
         <RecentTicketsTable />

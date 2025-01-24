@@ -3,14 +3,7 @@
 import { useMemo } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
 import { type DailyUserMetric } from '~/server/db/utils/metrics'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '~/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import {
   ChartConfig,
   ChartContainer,
