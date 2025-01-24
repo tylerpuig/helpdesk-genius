@@ -8,12 +8,10 @@ import {
 } from '~/app/_components/dashboard/analytics/ticket-table'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { api } from '~/trpc/react'
-import { NewWorkspaceDialog } from '~/app/_components/dashboard/workspace-switcher'
 
 export default function Page() {
   return (
     <>
-      <NewWorkspaceDialog />
       <Dashboard />
     </>
   )

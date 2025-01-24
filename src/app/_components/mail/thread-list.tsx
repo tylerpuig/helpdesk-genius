@@ -9,13 +9,22 @@ import { useThreadStore } from '~/hooks/store/useThread'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 
 export function MailList() {
-  const { selectedThreadId, updateSelectedThreadId, threadStatus, updateThreads } = useThreadStore()
+  const {
+    selectedThreadId,
+    updateSelectedThreadId,
+    threadStatus,
+    updateThreads,
+    threadPriority,
+    threadReadStatus
+  } = useThreadStore()
   const { selectedWorkspaceId } = useWorkspace()
 
   const { data: threadsData, refetch: refetchThreads } =
     api.messages.viewEmailMessageThreads.useQuery({
       status: threadStatus,
-      workspaceId: selectedWorkspaceId
+      workspaceId: selectedWorkspaceId,
+      threadPriority,
+      readStatus: threadReadStatus
     })
 
   useEffect(() => {
@@ -29,11 +38,6 @@ export function MailList() {
       refetchThreads()
     }
   })
-
-  const viewingThread = selectedThreadId
-    ? threadsData?.find((item) => item.id === selectedThreadId)
-    : null
-  const viewingThreadTags = viewingThread?.tags ?? []
 
   return (
     <ScrollArea className="h-screen">

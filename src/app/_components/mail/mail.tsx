@@ -13,7 +13,7 @@ import { TooltipProvider } from '~/components/ui/tooltip'
 import { EmailMessagesDisplay } from '~/app/_components/mail/messages-display'
 import { MailList } from '~/app/_components/mail/thread-list'
 // import { Nav } from '~/app/_components/mail/nav'
-import FilterThread from '~/app/_components/mail/thread/filter-thread'
+import FilterThread, { FilterThreadByPriority } from '~/app/_components/mail/thread/filter-thread'
 import { EmailForwardDialog } from '~/app/_components/mail/utilities/forward-email-message/forward-email-message'
 
 type MailProps = {
@@ -40,15 +40,10 @@ export function Mail({
           <Tabs defaultValue="all">
             <div className="flex items-center justify-between px-4 py-2">
               <h1 className="text-xl font-bold">Inbox</h1>
-              <FilterThread />
-              {/* <TabsList className="ml-auto">
-                <TabsTrigger value="all" className="text-zinc-600 dark:text-zinc-200">
-                  All mail
-                </TabsTrigger>
-                <TabsTrigger value="unread" className="text-zinc-600 dark:text-zinc-200">
-                  Unread
-                </TabsTrigger>
-              </TabsList> */}
+              <div className="flex gap-2">
+                <FilterThreadByPriority />
+                <FilterThread />
+              </div>
             </div>
             <Separator />
             <div className="bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">

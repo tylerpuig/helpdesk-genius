@@ -76,7 +76,14 @@ const updateThreadStatusButtons: Array<{
 
 export default function MessageUtilities() {
   const today = new Date()
-  const { selectedThreadId, threads, threadStatus, updateSelectedThreadId } = useThreadStore()
+  const {
+    selectedThreadId,
+    threads,
+    threadStatus,
+    updateSelectedThreadId,
+    threadPriority,
+    threadReadStatus
+  } = useThreadStore()
   const { selectedWorkspaceId } = useWorkspace()
   const { open: openForwardMessageDialog } = useForwardMessageDialog()
   const { setTagManagerSheetOpen } = useTagStore()
@@ -84,7 +91,9 @@ export default function MessageUtilities() {
   const { refetch: refetchThreads } = api.messages.viewEmailMessageThreads.useQuery(
     {
       status: threadStatus,
-      workspaceId: selectedWorkspaceId
+      workspaceId: selectedWorkspaceId,
+      threadPriority,
+      readStatus: threadReadStatus
     },
     {
       enabled: false

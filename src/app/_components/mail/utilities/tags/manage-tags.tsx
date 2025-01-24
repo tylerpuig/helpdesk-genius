@@ -14,7 +14,7 @@ import { useThreadStore } from '~/hooks/store/useThread'
 export default function ManageTagsSheet() {
   const { selectedWorkspaceId } = useWorkspace()
   const { tagManagerSheetOpen, setTagManagerSheetOpen } = useTagStore()
-  const { threadStatus } = useThreadStore()
+  const { threadStatus, threadPriority, threadReadStatus } = useThreadStore()
 
   const [inputValue, setInputValue] = useState('')
   const [colorValue, setColorValue] = useState('#000000')
@@ -26,7 +26,9 @@ export default function ManageTagsSheet() {
   const { refetch: refetchThreads } = api.messages.viewEmailMessageThreads.useQuery(
     {
       workspaceId: selectedWorkspaceId,
-      status: threadStatus
+      status: threadStatus,
+      threadPriority,
+      readStatus: threadReadStatus
     },
     {
       enabled: false

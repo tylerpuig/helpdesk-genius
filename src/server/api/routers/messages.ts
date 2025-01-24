@@ -1,20 +1,36 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
-import { and, eq, desc, asc } from 'drizzle-orm'
+import { and, eq, desc, asc, SQL } from 'drizzle-orm'
 import * as schema from '~/server/db/schema'
 import * as dbInsertionUtils from '~/server/db/utils/insertions'
 import { threadStatusSchema } from '~/server/db/types'
+import { type ThreadPriority } from '~/server/db/types'
 
 export const messagesRouter = createTRPCRouter({
   viewEmailMessageThreads: protectedProcedure
-    .input(z.object({ status: threadStatusSchema, workspaceId: z.string() }))
+    .input(
+      z.object({
+        status: threadStatusSchema,
+        workspaceId: z.string(),
+        threadPriority: z.union([z.string(), z.null()]),
+        readStatus: z.enum(['unread', 'all'])
+      })
+    )
     .query(async ({ ctx, input }) => {
+      const conditions: SQL[] = [
+        eq(schema.threadsTable.status, input.status),
+        eq(schema.threadsTable.workspaceId, input.workspaceId),
+        eq(schema.threadsTable.channel, 'email')
+      ]
+
+      if (input.threadPriority) {
+        conditions.push(eq(schema.threadsTable.priority, input.threadPriority as ThreadPriority))
+      }
+      if (input.readStatus === 'unread') {
+        conditions.push(eq(schema.threadsTable.isUnread, true))
+      }
       const threads = await ctx.db.query.threadsTable.findMany({
-        where: and(
-          eq(schema.threadsTable.status, input.status),
-          eq(schema.threadsTable.workspaceId, input.workspaceId),
-          eq(schema.threadsTable.channel, 'email')
-        ),
+        where: and(...conditions),
         with: {
           messages: {
             orderBy: desc(schema.messagesTable.createdAt),
@@ -42,7 +58,8 @@ export const messagesRouter = createTRPCRouter({
           channel: true,
           isUnread: true
         },
-        orderBy: desc(schema.threadsTable.lastMessageAt)
+        orderBy: desc(schema.threadsTable.lastMessageAt),
+        limit: 20
       })
 
       return threads

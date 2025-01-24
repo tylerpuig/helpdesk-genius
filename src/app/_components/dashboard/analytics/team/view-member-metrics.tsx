@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   MemberAreaChart,
   type UserMetricKeys
@@ -66,6 +66,12 @@ export default function ViewMemmberAnalytics() {
   const { data: members } = api.workspace.getTeamMembersForAnalytics.useQuery({
     workspaceId: selectedWorkspaceId
   })
+
+  useEffect(() => {
+    if (!selectedMemberUserId && members?.[0]?.userId) {
+      setSelectedMemberUserId(members[0].userId)
+    }
+  }, [members])
 
   const { data: dailyUserMetrics } = api.metrics.getDailyUserMetrics.useQuery(
     {

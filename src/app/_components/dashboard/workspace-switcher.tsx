@@ -5,13 +5,7 @@ import { ChevronsUpDown, Plus, Box } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle
-} from '~/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,13 +26,7 @@ import { Skeleton } from '~/components/ui/skeleton'
 
 export function WorkspaceSwitcher() {
   const { data: workspaces } = api.workspace.getUserWorkspaces.useQuery()
-  const {
-    selectedWorkspaceId,
-    setSelectedWorkspaceId,
-    newWorkspaceDialogOpen,
-    setNewWorkspaceDialogOpen
-  } = useWorkspace()
-  // const [newWorkspaceDialogOpen, setNewWorkspaceDialogOpen] = useState(false)
+  const { selectedWorkspaceId, setSelectedWorkspaceId, setNewWorkspaceDialogOpen } = useWorkspace()
   const { isMobile } = useSidebar()
 
   const currentWorkspace = (workspaces || []).find(
@@ -136,46 +124,44 @@ export function NewWorkspaceDialog() {
   })
 
   return (
-    <Dialog
-      open={newWorkspaceDialogOpen}
-      onOpenChange={(open) => {
-        if (!open) setWorkspaceName('')
-        setNewWorkspaceDialogOpen(open)
-      }}
-    >
-      {/* <DialogTrigger asChild>
-        <Button className="mb-4">Add User</Button>
-      </DialogTrigger> */}
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create New Workspace</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <Label htmlFor="email">Name</Label>
-            <Input
-              id="workspaceName"
-              type="text"
-              value={workspaceName}
-              onChange={(e) => setWorkspaceName(e.target.value)}
-              required
-            />
+    <>
+      <Dialog
+        open={newWorkspaceDialogOpen}
+        onOpenChange={(open) => {
+          setNewWorkspaceDialogOpen(open)
+        }}
+      >
+        <DialogContent className="">
+          <DialogHeader>
+            <DialogTitle>Create New Workspace</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="email">Name</Label>
+              <Input
+                id="workspaceName"
+                type="text"
+                value={workspaceName}
+                onChange={(e) => setWorkspaceName(e.target.value)}
+                required
+              />
+            </div>
           </div>
-        </div>
-        <div className="flex w-full">
-          <Button
-            className="w-full"
-            onClick={() => {
-              if (!workspaceName) return
-              createWorkspace.mutate({
-                name: workspaceName
-              })
-            }}
-          >
-            Create Workspace
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+          <div className="flex w-full">
+            <Button
+              className="w-full"
+              onClick={() => {
+                if (!workspaceName) return
+                createWorkspace.mutate({
+                  name: workspaceName
+                })
+              }}
+            >
+              Create Workspace
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

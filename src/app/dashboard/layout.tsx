@@ -13,6 +13,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/components/ui/s
 import { redirect } from 'next/navigation'
 import { auth } from '~/server/auth'
 import { DashboardProviders } from '~/app/_components/dashboard/dashboard-providers'
+import { NewWorkspaceDialog } from '~/app/_components/dashboard/workspace-switcher'
 
 export default async function DashboardLayout({
   children
@@ -47,6 +48,7 @@ export default async function DashboardLayout({
           </header>
           {children}
         </SidebarInset>
+        <NewWorkspaceDialog />
       </DashboardProviders>
     </SidebarProvider>
   )
