@@ -14,7 +14,8 @@ import {
   SquareTerminal,
   Mail,
   MessageCircle,
-  ChartLine
+  ChartLine,
+  User
 } from 'lucide-react'
 
 import { NavMain } from '~/app/_components/dashboard/nav-main'
@@ -69,6 +70,11 @@ const data = {
       title: 'Chat',
       url: '/dashboard/chat',
       icon: MessageCircle
+    },
+    {
+      title: 'Contacts',
+      url: '/dashboard/contacts',
+      icon: User
     },
     {
       title: 'Analytics',

@@ -4,6 +4,7 @@ import { metricsRouter } from '~/server/api/routers/metrics'
 import { authRouter } from '~/server/api/routers/auth'
 import { workspaceRouter } from '~/server/api/routers/workspaces'
 import { chatRouter } from '~/server/api/routers/chat'
+import { contactsRouter } from '~/server/api/routers/contacts'
 
 /**
  * This is the primary router for your server.
@@ -15,7 +16,8 @@ export const appRouter = createTRPCRouter({
   metrics: metricsRouter,
   auth: authRouter,
   workspace: workspaceRouter,
-  chat: chatRouter
+  chat: chatRouter,
+  contacts: contactsRouter
 })
 
 // export type definition of API
