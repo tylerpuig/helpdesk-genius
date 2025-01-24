@@ -19,6 +19,17 @@ export const messagesRouter = createTRPCRouter({
           messages: {
             orderBy: desc(schema.messagesTable.createdAt),
             limit: 1
+          },
+          tags: {
+            with: {
+              tag: {
+                columns: {
+                  id: true,
+                  name: true,
+                  color: true
+                }
+              }
+            }
           }
         },
         columns: {
@@ -87,5 +98,58 @@ export const messagesRouter = createTRPCRouter({
       }
 
       return { success: true }
+    }),
+  createNewTag: protectedProcedure
+    .input(z.object({ workspaceId: z.string(), name: z.string(), color: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.insert(schema.tagsTable).values({
+        workspaceId: input.workspaceId,
+        name: input.name,
+        color: input.color
+      })
+
+      return { success: true }
+    }),
+  deleteTag: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.delete(schema.tagsTable).where(eq(schema.tagsTable.id, input.id))
+
+      return { success: true }
+    }),
+  updateTagForThread: protectedProcedure
+    .input(z.object({ threadId: z.string(), tagId: z.string(), action: z.enum(['add', 'remove']) }))
+    .mutation(async ({ ctx, input }) => {
+      if (input.action === 'remove') {
+        await ctx.db
+          .delete(schema.threadTagsTable)
+          .where(
+            and(
+              eq(schema.threadTagsTable.threadId, input.threadId),
+              eq(schema.threadTagsTable.tagId, input.tagId)
+            )
+          )
+      } else {
+        await ctx.db.insert(schema.threadTagsTable).values({
+          threadId: input.threadId,
+          tagId: input.tagId
+        })
+      }
+
+      return { success: true }
+    }),
+
+  getWorkspaceTags: protectedProcedure
+    .input(
+      z.object({
+        workspaceId: z.string()
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const tags = await ctx.db.query.tagsTable.findMany({
+        where: eq(schema.tagsTable.workspaceId, input.workspaceId)
+      })
+
+      return tags
     })
 })

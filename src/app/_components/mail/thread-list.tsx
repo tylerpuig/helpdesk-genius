@@ -30,7 +30,10 @@ export function MailList() {
     }
   })
 
-  // const latestMessage = threadsData?.messages?.at(-1)
+  const viewingThread = selectedThreadId
+    ? threadsData?.find((item) => item.id === selectedThreadId)
+    : null
+  const viewingThreadTags = viewingThread?.tags ?? []
 
   return (
     <ScrollArea className="h-screen">
@@ -75,18 +78,19 @@ export function MailList() {
               <div className="line-clamp-2 text-xs text-muted-foreground">
                 {latestMessage?.content.substring(0, 300)}
               </div>
-              {true ? (
-                <div className="flex items-center gap-2">
-                  <Badge key={item.priority} variant={getBadgeVariantByPriority(item.priority)}>
-                    {item.priority}
-                  </Badge>
-                  {['work', 'personal'].map((label) => (
-                    <Badge key={label} variant={getBadgeVariantFromLabel(label)}>
-                      {label}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
+
+              <div className="flex items-center gap-2">
+                <Badge key={item.priority} variant={getBadgeVariantByPriority(item.priority)}>
+                  {item.priority}
+                </Badge>
+                {item.tags && item.tags.length > 0 ? (
+                  <>
+                    {item.tags.map((tag) => (
+                      <>{getBadgeWithTagColor(tag.tag.color, tag.tag.name)}</>
+                    ))}
+                  </>
+                ) : null}
+              </div>
             </button>
           )
         })}
@@ -95,16 +99,8 @@ export function MailList() {
   )
 }
 
-function getBadgeVariantFromLabel(label: string): ComponentProps<typeof Badge>['variant'] {
-  if (['work'].includes(label.toLowerCase())) {
-    return 'default'
-  }
-
-  if (['personal'].includes(label.toLowerCase())) {
-    return 'outline'
-  }
-
-  return 'secondary'
+function getBadgeWithTagColor(color: string, name: string) {
+  return <Badge style={{ backgroundColor: color }}>{name}</Badge>
 }
 
 function getBadgeVariantByPriority(label: string): ComponentProps<typeof Badge>['variant'] {
