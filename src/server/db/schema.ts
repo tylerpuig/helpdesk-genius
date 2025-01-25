@@ -8,7 +8,8 @@ import {
   timestamp,
   varchar,
   pgTable,
-  boolean
+  boolean,
+  vector
 } from 'drizzle-orm/pg-core'
 import { type AdapterAccount } from 'next-auth/adapters'
 import * as DBTypes from '~/server/db/types'
@@ -219,6 +220,58 @@ export const messagesTable = pgTable(
   (message) => [
     index('message_thread_id_idx').on(message.threadId),
     index('message_created_at_idx').on(message.createdAt)
+  ]
+)
+
+export const liveChatsTable = pgTable('live_chat', {
+  id: varchar('id').notNull().primaryKey(),
+  threadId: varchar('thread_id'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull()
+})
+
+export const agentsTable = pgTable('agent', {
+  id: varchar('id', { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  workspaceId: varchar('workspace_id', { length: 255 })
+    .notNull()
+    .references(() => workspacesTable.id),
+  title: varchar('title', { length: 100 }).notNull(),
+  description: text('description').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull()
+})
+
+export const messageEmbeddingsTable = pgTable(
+  'message_embeddings',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    messageId: varchar('message_id', { length: 255 })
+      .notNull()
+      .references(() => messagesTable.id),
+    // Store which agent this message was assigned to
+    agentId: varchar('agent_id', { length: 255 })
+      .notNull()
+      .references(() => agentsTable.id),
+    // Store the embedding vector
+    embedding: vector('embedding', { dimensions: 1536 }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (messageEmbedding) => [
+    index('message_embeddings_agent_idx').on(messageEmbedding.agentId),
+    index('message_embeddings_message_idx').using(
+      'hnsw',
+      messageEmbedding.embedding.op('vector_cosine_ops')
+    )
   ]
 )
 

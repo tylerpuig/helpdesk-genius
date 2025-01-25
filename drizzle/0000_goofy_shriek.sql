@@ -13,6 +13,14 @@ CREATE TABLE "account" (
 	CONSTRAINT "account_provider_provider_account_id_pk" PRIMARY KEY("provider","provider_account_id")
 );
 --> statement-breakpoint
+CREATE TABLE "agent" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"workspace_id" varchar(255) NOT NULL,
+	"title" varchar(100) NOT NULL,
+	"description" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "contact" (
 	"id" varchar(255) PRIMARY KEY NOT NULL,
 	"workspace_id" varchar(255) NOT NULL,
@@ -20,6 +28,20 @@ CREATE TABLE "contact" (
 	"name" varchar(255),
 	"company" varchar(255),
 	"last_contacted_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "live_chat" (
+	"id" varchar PRIMARY KEY NOT NULL,
+	"thread_id" varchar,
+	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "message_embeddings" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"message_id" varchar(255) NOT NULL,
+	"agent_id" varchar(255) NOT NULL,
+	"embedding" vector(1536),
 	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 --> statement-breakpoint
@@ -153,7 +175,10 @@ CREATE TABLE "workspace" (
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "agent" ADD CONSTRAINT "agent_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "contact" ADD CONSTRAINT "contact_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "message_embeddings" ADD CONSTRAINT "message_embeddings_message_id_message_id_fk" FOREIGN KEY ("message_id") REFERENCES "public"."message"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "message_embeddings" ADD CONSTRAINT "message_embeddings_agent_id_agent_id_fk" FOREIGN KEY ("agent_id") REFERENCES "public"."agent"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "message" ADD CONSTRAINT "message_thread_id_thread_id_fk" FOREIGN KEY ("thread_id") REFERENCES "public"."thread"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tag" ADD CONSTRAINT "tag_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -175,6 +200,8 @@ CREATE INDEX "account_user_id_idx" ON "account" USING btree ("user_id");--> stat
 CREATE UNIQUE INDEX "contact_workspace_email_idx" ON "contact" USING btree ("workspace_id","email");--> statement-breakpoint
 CREATE INDEX "contact_workspace_idx" ON "contact" USING btree ("workspace_id");--> statement-breakpoint
 CREATE INDEX "contact_email_idx" ON "contact" USING btree ("email");--> statement-breakpoint
+CREATE INDEX "message_embeddings_agent_idx" ON "message_embeddings" USING btree ("agent_id");--> statement-breakpoint
+CREATE INDEX "message_embeddings_message_idx" ON "message_embeddings" USING hnsw ("embedding" vector_cosine_ops);--> statement-breakpoint
 CREATE INDEX "message_thread_id_idx" ON "message" USING btree ("thread_id");--> statement-breakpoint
 CREATE INDEX "message_created_at_idx" ON "message" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "session_user_id_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
