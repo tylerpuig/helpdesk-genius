@@ -17,7 +17,6 @@ export function ChatbotConfig() {
   const { toast } = useToast()
 
   const handleSave = () => {
-    // Here you would typically send the data to your backend
     console.log({ botName, welcomeMessage, themeColor, enableVoice, enableAttachments })
     toast({
       title: 'Configuration updated',

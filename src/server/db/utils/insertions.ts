@@ -299,3 +299,19 @@ export async function createNewChatMessage(
     console.error('createNewChatMessage', error)
   }
 }
+
+export async function createLiveChatThread(chatId: string, threadId: string) {
+  try {
+    const [result] = await db
+      .insert(schema.liveChatsTable)
+      .values({
+        id: chatId,
+        threadId
+      })
+      .returning()
+
+    return result
+  } catch (error) {
+    console.error('createLiveChatThread', error)
+  }
+}

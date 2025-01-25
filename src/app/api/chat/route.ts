@@ -21,7 +21,7 @@ type ChatResponse = {
   threadId: string
 }
 
-const chatCache = new Map<string, string>()
+// const chatCache = new Map<string, string>()
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    let threadId = chatCache.get(chatId)
+    let threadId = await dbQueryUtils.getThreadIdFromChatId(chatId)
 
     if (!threadId) {
       const newChat = await dbInsertionUtils.createNewChat(workspaceId, message)
@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to create new chat' }, { status: 500 })
       }
       threadId = newChat.id
-      chatCache.set(chatId, threadId)
+      await dbInsertionUtils.createLiveChatThread(chatId, threadId)
+      // chatCache.set(chatId, threadId)
     }
 
     await dbInsertionUtils.createNewChatMessage(threadId, message, user)
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
       chatId
     }
 
-    let threadId = chatCache.get(params.chatId)
+    let threadId = await dbQueryUtils.getThreadIdFromChatId(params.chatId)
     if (!threadId) {
       return NextResponse.json({ error: 'Chat not found' }, { status: 404 })
     }

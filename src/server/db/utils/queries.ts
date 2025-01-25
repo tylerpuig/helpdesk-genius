@@ -249,3 +249,15 @@ export async function getChatMessages(threadId: string) {
     console.error('getChatMessages', error)
   }
 }
+
+export async function getThreadIdFromChatId(chatId: string): Promise<string | undefined> {
+  try {
+    const result = await db.query.liveChatsTable.findFirst({
+      where: eq(schema.liveChatsTable.id, chatId)
+    })
+
+    return result?.threadId ?? ''
+  } catch (error) {
+    console.error('getThreadIdFromChatId', error)
+  }
+}
