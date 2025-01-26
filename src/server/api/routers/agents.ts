@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
 import * as schema from '~/server/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, asc } from 'drizzle-orm'
 import * as openaiUtils from '~/server/integrations/openai'
 
 export const agentsRouter = createTRPCRouter({
@@ -59,6 +59,21 @@ export const agentsRouter = createTRPCRouter({
       })
 
       return { success: true }
+    }),
+  getAgentKnowledge: protectedProcedure
+    .input(z.object({ agentId: z.string(), workspaceId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const knowledge = await ctx.db
+        .select({
+          id: schema.knowledgeBaseEmbeddingsTable.id,
+          rawContent: schema.knowledgeBaseEmbeddingsTable.rawContent
+        })
+        .from(schema.knowledgeBaseEmbeddingsTable)
+        .where(and(eq(schema.knowledgeBaseEmbeddingsTable.agentId, input.agentId)))
+        .orderBy(asc(schema.knowledgeBaseEmbeddingsTable.createdAt))
+        .limit(10)
+
+      return knowledge
     }),
   updateAgentKnowledge: protectedProcedure
     .input(

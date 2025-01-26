@@ -18,8 +18,10 @@ import {
   DropdownMenuTrigger
 } from '~/components/ui/dropdown-menu'
 import { MoreVertical, Edit, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function AgentList() {
+  const router = useRouter()
   const { selectedWorkspaceId } = useWorkspace()
   const { setSelectedAgentId, setAddNewAgentDialogOpen } = useAgentStore()
 
@@ -44,7 +46,7 @@ export default function AgentList() {
           variant="default"
           className=""
         >
-          Add Agent
+          New Agent
         </Button>
       </div>
       <NewAgentDialog />
@@ -55,7 +57,13 @@ export default function AgentList() {
               key={agent.id}
               className="relative transition-shadow duration-300 hover:shadow-lg"
             >
-              <CardHeader className="cursor-pointer" onClick={() => setSelectedAgentId(agent.id)}>
+              <CardHeader
+                className="cursor-pointer"
+                onClick={() => {
+                  setSelectedAgentId(agent.id)
+                  router.push(`/dashboard/agents/${agent.id}`)
+                }}
+              >
                 <CardTitle className="mb-2 text-xl">{agent.title}</CardTitle>
                 <CardDescription>{agent.description}</CardDescription>
               </CardHeader>
@@ -107,9 +115,14 @@ function NewAgentDialog() {
     description: ''
   })
 
-  const { refetch: refetchAgents } = api.agents.getWorkspaceAgents.useQuery({
-    workspaceId: selectedWorkspaceId
-  })
+  const { refetch: refetchAgents } = api.agents.getWorkspaceAgents.useQuery(
+    {
+      workspaceId: selectedWorkspaceId
+    },
+    {
+      enabled: false
+    }
+  )
 
   const { data: agentInfo } = api.agents.getAgentDetails.useQuery(
     {
