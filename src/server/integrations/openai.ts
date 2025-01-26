@@ -146,3 +146,45 @@ export async function generateContactSummary(contactEmail: string, messages: str
 
   return ''
 }
+
+export async function generateEmbeddingFromText(text: string): Promise<number[] | undefined> {
+  try {
+    const response = await openai.embeddings.create({
+      model: 'text-embedding-3-large',
+      input: text,
+      dimensions: 1536
+    })
+
+    const embedding = response?.data?.[0]?.embedding ?? []
+    return embedding
+  } catch (error) {
+    console.error(error)
+  }
+
+  return []
+}
+
+export async function generateAgentKnowledgeSummary(knowledge: string) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a helpful assistant. Summarize the following knowledge for an agent. Must be less than 10 words.`
+        },
+        {
+          role: 'user',
+          content: `Summarize this knowledge: ${knowledge}`
+        }
+      ]
+    })
+
+    const summary = response?.choices?.[0]?.message?.content ?? ''
+    return summary
+  } catch (error) {
+    console.error(error)
+  }
+
+  return ''
+}

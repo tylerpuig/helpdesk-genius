@@ -51,10 +51,12 @@ export const agentsRouter = createTRPCRouter({
       if (!embedding) {
         return { success: false }
       }
+      const summary = await openaiUtils.generateAgentKnowledgeSummary(input.knowledgeContent)
 
       await ctx.db.insert(schema.knowledgeBaseEmbeddingsTable).values({
         agentId: input.agentId,
         rawContent: input.knowledgeContent,
+        rawContentSummary: summary,
         embedding: embedding
       })
 
@@ -66,7 +68,8 @@ export const agentsRouter = createTRPCRouter({
       const knowledge = await ctx.db
         .select({
           id: schema.knowledgeBaseEmbeddingsTable.id,
-          rawContent: schema.knowledgeBaseEmbeddingsTable.rawContent
+          rawContent: schema.knowledgeBaseEmbeddingsTable.rawContent,
+          rawContentSummary: schema.knowledgeBaseEmbeddingsTable.rawContentSummary
         })
         .from(schema.knowledgeBaseEmbeddingsTable)
         .where(and(eq(schema.knowledgeBaseEmbeddingsTable.agentId, input.agentId)))
@@ -79,8 +82,8 @@ export const agentsRouter = createTRPCRouter({
     .input(
       z.object({
         agentId: z.string(),
-        knowledgeIndex: z.number(),
-        knowledgeContent: z.string()
+        knowledgeContent: z.string(),
+        knowledgeId: z.string()
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -89,13 +92,25 @@ export const agentsRouter = createTRPCRouter({
         return { success: false }
       }
 
+      const summary = await openaiUtils.generateAgentKnowledgeSummary(input.knowledgeContent)
+
       await ctx.db
-        .update(schema.knowledgeBaseEmbeddingsTable)
-        .set({
+        .insert(schema.knowledgeBaseEmbeddingsTable)
+        .values({
+          ...(input.knowledgeId ? { id: input.knowledgeId } : {}),
+          agentId: input.agentId,
           rawContent: input.knowledgeContent,
+          rawContentSummary: summary,
           embedding: embedding
         })
-        .where(eq(schema.knowledgeBaseEmbeddingsTable.agentId, input.agentId))
+        .onConflictDoUpdate({
+          target: [schema.knowledgeBaseEmbeddingsTable.id],
+          set: {
+            rawContent: input.knowledgeContent,
+            rawContentSummary: summary,
+            embedding: embedding
+          }
+        })
 
       return { success: true }
     }),
@@ -155,5 +170,21 @@ export const agentsRouter = createTRPCRouter({
         )
 
       return { success: true }
+    }),
+  getSingleAgentKnowledge: protectedProcedure
+    .input(z.object({ agentId: z.string(), knowledgeId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const knowledge = await ctx.db.query.knowledgeBaseEmbeddingsTable.findFirst({
+        where: and(
+          eq(schema.knowledgeBaseEmbeddingsTable.agentId, input.agentId),
+          eq(schema.knowledgeBaseEmbeddingsTable.id, input.knowledgeId)
+        ),
+        columns: {
+          id: true,
+          rawContent: true
+        }
+      })
+
+      return knowledge
     })
 })
