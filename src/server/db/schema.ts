@@ -246,31 +246,28 @@ export const agentsTable = pgTable('agent', {
     .notNull()
 })
 
-export const messageEmbeddingsTable = pgTable(
-  'message_embeddings',
+export const knowledgeBaseEmbeddingsTable = pgTable(
+  'knowledge_base_embeddings',
   {
     id: varchar('id', { length: 255 })
       .notNull()
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    messageId: varchar('message_id', { length: 255 })
-      .notNull()
-      .references(() => messagesTable.id),
     // Store which agent this message was assigned to
     agentId: varchar('agent_id', { length: 255 })
       .notNull()
       .references(() => agentsTable.id),
-    // Store the embedding vector
     embedding: vector('embedding', { dimensions: 1536 }),
+    rawContent: text('raw_content').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull()
   },
-  (messageEmbedding) => [
-    index('message_embeddings_agent_idx').on(messageEmbedding.agentId),
-    index('message_embeddings_message_idx').using(
+  (knowledeBaseEmbeddings) => [
+    index('knowledge_base_embeddings_agent_idx').on(knowledeBaseEmbeddings.agentId),
+    index('knowledge_base_embeddings_message_idx').using(
       'hnsw',
-      messageEmbedding.embedding.op('vector_cosine_ops')
+      knowledeBaseEmbeddings.embedding.op('vector_cosine_ops')
     )
   ]
 )
