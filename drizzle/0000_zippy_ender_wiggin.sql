@@ -17,6 +17,8 @@ CREATE TABLE "agent" (
 	"id" varchar(255) PRIMARY KEY NOT NULL,
 	"workspace_id" varchar(255) NOT NULL,
 	"title" varchar(100) NOT NULL,
+	"enabled" boolean DEFAULT true,
+	"allow_auto_reply" boolean DEFAULT true,
 	"description" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

@@ -240,6 +240,8 @@ export const agentsTable = pgTable('agent', {
     .notNull()
     .references(() => workspacesTable.id),
   title: varchar('title', { length: 100 }).notNull(),
+  enabled: boolean('enabled').default(true),
+  allowAutoReply: boolean('allow_auto_reply').default(true),
   description: text('description').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)

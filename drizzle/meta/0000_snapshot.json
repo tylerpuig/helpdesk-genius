@@ -1,5 +1,5 @@
 {
-  "id": "d479a108-b230-4873-974b-f8c9394cfbf6",
+  "id": "bcea6cf2-5854-4ccf-83e4-ea302336e574",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -142,6 +142,20 @@
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "allow_auto_reply": {
+          "name": "allow_auto_reply",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
         },
         "description": {
           "name": "description",
