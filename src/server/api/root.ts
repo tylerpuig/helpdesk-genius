@@ -5,6 +5,7 @@ import { authRouter } from '~/server/api/routers/auth'
 import { workspaceRouter } from '~/server/api/routers/workspaces'
 import { chatRouter } from '~/server/api/routers/chat'
 import { contactsRouter } from '~/server/api/routers/contacts'
+import { agentsRouter } from '~/server/api/routers/agents'
 
 /**
  * This is the primary router for your server.
@@ -17,7 +18,8 @@ export const appRouter = createTRPCRouter({
   auth: authRouter,
   workspace: workspaceRouter,
   chat: chatRouter,
-  contacts: contactsRouter
+  contacts: contactsRouter,
+  agents: agentsRouter
 })
 
 // export type definition of API

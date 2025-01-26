@@ -120,6 +120,10 @@ const data = {
           url: '#'
         },
         {
+          title: 'Agents',
+          url: '/dashboard/agents'
+        },
+        {
           title: 'Team',
           url: '/dashboard/team'
         },
