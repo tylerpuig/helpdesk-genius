@@ -258,6 +258,7 @@ export const knowledgeBaseEmbeddingsTable = pgTable(
       .notNull()
       .references(() => agentsTable.id),
     embedding: vector('embedding', { dimensions: 1536 }),
+    rawContentSummary: text('raw_content_summary').notNull(),
     rawContent: text('raw_content').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
