@@ -16,7 +16,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
 
-const WORKSPACE_ID = 'fe2c85c0-88b4-4248-b724-7dd93eac53ce'
+const WORKSPACE_ID = process.env.WORKSPACE_ID!
 
 const sampleCustomers = [
   { name: 'John Smith', email: 'john.smith@example.com', company: 'TechCorp' },
