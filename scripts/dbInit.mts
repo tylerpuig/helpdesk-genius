@@ -8,6 +8,7 @@ dotenv.config({
   path: '../.env'
 })
 
+const WORKSPACE_ID = process.env.WORKSPACE_ID!
 async function addDemoUser() {
   try {
     const hashedPassword = await bcrypt.hash(process.env.NEXT_PUBLIC_DEMO_USER_PASSWORD!, 10)
@@ -60,4 +61,4 @@ async function addDemoWorkspaceUsers(workspaceId: string) {
 }
 
 // addDemoUser()
-// addDemoWorkspaceUsers('fe2c85c0-88b4-4248-b724-7dd93eac53ce')
+// addDemoWorkspaceUsers(WORKSPACE_ID)

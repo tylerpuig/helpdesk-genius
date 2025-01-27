@@ -1,7 +1,18 @@
 import { db } from './dbInstance.mjs'
 import { exists, eq, and, sql, gte, lte } from 'drizzle-orm'
-import { threadAssignmentsTable, threadsTable, messagesTable } from '../src/server/db/schema'
+import {
+  threadAssignmentsTable,
+  threadsTable,
+  messagesTable,
+  userDailyMetricsTable
+} from '../src/server/db/schema'
+import dotenv from 'dotenv'
 
+dotenv.config({
+  path: '../.env'
+})
+
+const WORKSPACE_ID = process.env.WORKSPACE_ID!
 function getDateRange(days: number) {
   const end = new Date()
   const start = new Date()
@@ -143,7 +154,7 @@ export async function getUserMetrics({
   }
 }
 
-type DailyUseMetric = {
+type DailyUserMetric = {
   date: string
   threadMetrics: {
     totalThreads: number
@@ -166,9 +177,9 @@ export async function getDailyUserMetrics({
   senderEmail: string
   workspaceId: string
   days: number
-}): Promise<DailyUseMetric[]> {
+}): Promise<DailyUserMetric[]> {
   // Calculate metrics by date
-  const dailyMetrics = new Map<string, DailyUseMetric>()
+  const dailyMetrics = new Map<string, DailyUserMetric>()
   try {
     const { start, end } = getDateRange(days)
 
@@ -349,19 +360,19 @@ export async function getDailyUserMetrics({
 }
 async function run() {
   // Usage:
-  const last7DaysMetrics = await getUserMetrics({
-    senderEmail: 'demo@example.com',
-    workspaceId: 'e3146484-79bc-40b0-87ce-e58e108608c0',
-    days: 30
-  })
+  // const last7DaysMetrics = await getUserMetrics({
+  //   senderEmail: 'demo@example.com',
+  //   workspaceId: 'e3146484-79bc-40b0-87ce-e58e108608c0',
+  //   days: 30
+  // })
 
   const dailyMetrics = await getDailyUserMetrics({
-    senderEmail: 'demo@example.com',
-    workspaceId: 'fe2c85c0-88b4-4248-b724-7dd93eac53ce',
-    days: 30
+    senderEmail: 'Jeremy41@yahoo.com',
+    workspaceId: WORKSPACE_ID,
+    days: 7
   })
   console.log(dailyMetrics)
 
-  console.log(last7DaysMetrics)
+  // console.log(last7DaysMetrics)
 }
 // run()
