@@ -35,12 +35,19 @@ export default function AgentDetails({ params }: { params: { agentId: string } }
     workspaceId: selectedWorkspaceId
   })
 
-  const { data: agentKnowledge } = api.agents.getAgentKnowledge.useQuery({
-    agentId: params.agentId,
-    workspaceId: selectedWorkspaceId
+  const { data: agentKnowledge, refetch: refetchAgentKnowledge } =
+    api.agents.getAgentKnowledge.useQuery({
+      agentId: params.agentId,
+      workspaceId: selectedWorkspaceId
+    })
+
+  const deleteAgentKnowledge = api.agents.deleteAgentKnowledge.useMutation({
+    onSuccess: () => {
+      refetchAgentKnowledge()
+    }
   })
 
-  const toggleAccordion = (value: string) => {
+  function toggleAccordion(value: string): void {
     setExpandedItems((prev) =>
       prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
     )
@@ -107,7 +114,11 @@ export default function AgentDetails({ params }: { params: { agentId: string } }
                             <Copy className="mr-2 h-4 w-4" />
                             Duplicate
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => {}}>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              deleteAgentKnowledge.mutate({ knowledgeId: item.id })
+                            }}
+                          >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
                           </DropdownMenuItem>

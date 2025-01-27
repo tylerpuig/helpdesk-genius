@@ -1,9 +1,11 @@
 import OpenAI from 'openai'
+import { zodResponseFormat } from 'openai/helpers/zod'
 import { z } from 'zod'
 import { db } from '~/server/db'
 import * as schema from '~/server/db/schema'
 import { asc, eq, and, desc, sql } from 'drizzle-orm'
 import { faker } from '@faker-js/faker'
+import type { EnabledAgentData, PreviousThreadContext } from '~/server/db/utils/queries'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -158,7 +160,7 @@ export async function generateEmbeddingFromText(text: string): Promise<number[] 
     const embedding = response?.data?.[0]?.embedding ?? []
     return embedding
   } catch (error) {
-    console.error(error)
+    console.error('generateEmbeddingFromText', error)
   }
 
   return []
@@ -183,8 +185,87 @@ export async function generateAgentKnowledgeSummary(knowledge: string) {
     const summary = response?.choices?.[0]?.message?.content ?? ''
     return summary
   } catch (error) {
-    console.error(error)
+    console.error('generateAgentKnowledgeSummary', error)
   }
 
   return ''
+}
+
+const suggestAgentOuputSchema = z.object({
+  agentId: z.string()
+})
+
+export async function suggestAgentFromMessageContent(
+  message: string,
+  agents: NonNullable<EnabledAgentData>
+): Promise<string | undefined> {
+  try {
+    const response = await openai.beta.chat.completions.parse({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an AI assistant that selects the best agent for a given message. Your task is to suggest the most relevant agent based on the message content. You should only suggest one agent, and you should provide the agent's ID ONLY as your response.
+          
+          Agents:
+          ${agents.map((agent) => `- Title: ${agent.title}: Description: ${agent.description} ID: ${agent.id}`).join('\n')}
+          `
+        },
+        {
+          role: 'user',
+          content: `Message: ${message}`
+        }
+      ],
+      response_format: zodResponseFormat(suggestAgentOuputSchema, 'agentId')
+    })
+
+    const agentId = response?.choices?.[0]?.message?.parsed?.agentId
+    return agentId
+  } catch (error) {
+    console.error('suggestAgentFromMessageContent', error)
+  }
+}
+
+const generatedAutoReplyMessageSchema = z.object({
+  autoReply: z.string(),
+  responseContext: z.string()
+})
+
+export async function generateAutoReplyMessage(
+  originalMessage: string,
+  similarKnowledgeContent: string,
+  previousThreadMessages: PreviousThreadContext
+) {
+  try {
+    const previousMessageContent = previousThreadMessages.map((message) => {
+      return `message: ${message.content} name: ${message.senderName} email: ${message.senderEmail} role: ${message.role} \n`
+    })
+    const response = await openai.beta.chat.completions.parse({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an AI assistant that generates a reply to a user's message. Your task is to generate a reply that is relevant to the message using the same tone and language as the similar messages provided to you. Use the knowledge provided to guide your reply. You should only generate one reply, and you should provide the reply ONLY as your response. You should also provide a response context that provides additional context to the reply so that our knowledge base can expand from the message context. The response context should include relevant information from the original message and the similar knowledge so that we can refer to it later if a user asks a similar question.
+          
+          Knowledge to refer to:
+          ${similarKnowledgeContent}
+
+          You can refer to the previous messages for a better understanding of the context. The "customer" role is who you are replying to. The "agent" role contains messages from our organization. The previous messages are:
+          ${previousMessageContent.join('\n')}
+
+          `
+        },
+        {
+          role: 'user',
+          content: `Message: ${originalMessage}`
+        }
+      ],
+      response_format: zodResponseFormat(generatedAutoReplyMessageSchema, 'response')
+    })
+
+    const responseData = response?.choices?.[0]?.message?.parsed
+    return responseData
+  } catch (error) {
+    console.error('generateAutoReplyMessage', error)
+  }
 }

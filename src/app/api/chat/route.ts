@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as dbInsertionUtils from '~/server/db/utils/insertions'
 import * as dbQueryUtils from '~/server/db/utils/queries'
+import * as chatUtils from '~/server/integrations/chat'
 import { chatEE, type EventEmitterChatMessage } from '~/server/api/routers/chat'
 
 export const runtime = 'nodejs'
@@ -61,6 +62,8 @@ export async function POST(request: NextRequest) {
     }
     chatEE.emit('newMessage', subMessage)
 
+    // auto reply with agent if applicable
+    void chatUtils.handleAgentAutoReply(workspaceId, threadId, message)
     return NextResponse.json(response)
   } catch (error) {
     console.error('Error processing chat message:', error)

@@ -1,4 +1,4 @@
-import { eq, sql, and, gte, lte, count, desc, asc } from 'drizzle-orm'
+import { eq, sql, and, gte, lte, count, desc, asc, cosineDistance } from 'drizzle-orm'
 import * as schema from '~/server/db/schema'
 import { db } from '~/server/db'
 import { type WorkspaceRole } from '~/server/db/types'
@@ -259,5 +259,72 @@ export async function getThreadIdFromChatId(chatId: string): Promise<string | un
     return result?.threadId ?? ''
   } catch (error) {
     console.error('getThreadIdFromChatId', error)
+  }
+}
+
+export type EnabledAgentData = Awaited<ReturnType<typeof getEnabledAgentsForWorkspace>>
+export async function getEnabledAgentsForWorkspace(workspaceId: string) {
+  try {
+    const agents = await db.query.agentsTable.findMany({
+      where: and(
+        eq(schema.agentsTable.workspaceId, workspaceId),
+        eq(schema.agentsTable.enabled, true),
+        eq(schema.agentsTable.allowAutoReply, true)
+      ),
+      columns: {
+        id: true,
+        title: true,
+        description: true
+      }
+    })
+
+    return agents
+  } catch (error) {
+    console.error('getAgentsForWorkspace', error)
+  }
+}
+
+export async function findSimilarMessagesFromAgentKnowledge(
+  agentId: string,
+  messageEmbedding: number[]
+) {
+  try {
+    const similarity = sql<number>`1 - (${cosineDistance(schema.knowledgeBaseEmbeddingsTable.embedding, messageEmbedding)})`
+
+    const results = await db
+      .select({
+        content: schema.knowledgeBaseEmbeddingsTable.rawContent,
+        similarity: similarity
+      })
+      .from(schema.knowledgeBaseEmbeddingsTable)
+      .where(eq(schema.knowledgeBaseEmbeddingsTable.agentId, agentId))
+      .orderBy(desc(similarity))
+      .limit(3)
+
+    return results
+  } catch (error) {
+    console.error('findSimilarMessagesFromAgentKnowledge', error)
+  }
+}
+
+export type PreviousThreadContext = NonNullable<
+  Awaited<ReturnType<typeof getPreviousThreadContext>>
+>
+export async function getPreviousThreadContext(threadId: string) {
+  try {
+    const previousMessages = await db.query.messagesTable.findMany({
+      where: and(eq(schema.messagesTable.id, threadId)),
+      orderBy: desc(schema.messagesTable.createdAt),
+      columns: {
+        content: true,
+        senderName: true,
+        senderEmail: true,
+        role: true
+      },
+      limit: 3
+    })
+    return previousMessages
+  } catch (error) {
+    console.error('getPreviousThreadContext', error)
   }
 }

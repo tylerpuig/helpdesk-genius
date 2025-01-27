@@ -55,7 +55,7 @@ export default function AgentList() {
           agents.map((agent) => (
             <Card
               key={agent.id}
-              className="relative transition-shadow duration-300 hover:shadow-lg"
+              className="relative transition-shadow duration-300 hover:bg-gray-900 hover:shadow-lg"
             >
               <CardHeader
                 className="cursor-pointer"

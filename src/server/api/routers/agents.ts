@@ -39,29 +39,6 @@ export const agentsRouter = createTRPCRouter({
 
       return agent
     }),
-  addKnowledgeToAgent: protectedProcedure
-    .input(
-      z.object({
-        agentId: z.string(),
-        knowledgeContent: z.string()
-      })
-    )
-    .mutation(async ({ input, ctx }) => {
-      const embedding = await openaiUtils.generateEmbeddingFromText(input.knowledgeContent)
-      if (!embedding) {
-        return { success: false }
-      }
-      const summary = await openaiUtils.generateAgentKnowledgeSummary(input.knowledgeContent)
-
-      await ctx.db.insert(schema.knowledgeBaseEmbeddingsTable).values({
-        agentId: input.agentId,
-        rawContent: input.knowledgeContent,
-        rawContentSummary: summary,
-        embedding: embedding
-      })
-
-      return { success: true }
-    }),
   getAgentKnowledge: protectedProcedure
     .input(z.object({ agentId: z.string(), workspaceId: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -111,6 +88,15 @@ export const agentsRouter = createTRPCRouter({
             embedding: embedding
           }
         })
+
+      return { success: true }
+    }),
+  deleteAgentKnowledge: protectedProcedure
+    .input(z.object({ knowledgeId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .delete(schema.knowledgeBaseEmbeddingsTable)
+        .where(eq(schema.knowledgeBaseEmbeddingsTable.id, input.knowledgeId))
 
       return { success: true }
     }),
