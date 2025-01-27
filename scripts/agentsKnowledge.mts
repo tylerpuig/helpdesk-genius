@@ -42,6 +42,11 @@ const defaultAgents: { title: string; description: string; filename: string }[] 
     title: 'Security Sarah',
     description: 'Sarah addresses security concerns, access permissions, and account recovery.',
     filename: 'security.txt'
+  },
+  {
+    title: 'Gerald Greeter',
+    description: 'Gerald deals with greeting users for our website',
+    filename: 'greeting.txt'
   }
 ]
 

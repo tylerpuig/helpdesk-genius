@@ -205,7 +205,7 @@ export async function suggestAgentFromMessageContent(
       messages: [
         {
           role: 'system',
-          content: `You are an AI assistant that selects the best agent for a given message. Your task is to suggest the most relevant agent based on the message content. You should only suggest one agent, and you should provide the agent's ID ONLY as your response.
+          content: `You are an AI assistant that selects the best agent for a given message. Your task is to suggest the most relevant agent based on the message content. You should only suggest one agent, and you should provide the agent's ID ONLY as your response. If there is no relevant agent, your response should be 'unavailable'.
           
           Agents:
           ${agents.map((agent) => `- Title: ${agent.title}: Description: ${agent.description} ID: ${agent.id}`).join('\n')}
@@ -220,6 +220,7 @@ export async function suggestAgentFromMessageContent(
     })
 
     const agentId = response?.choices?.[0]?.message?.parsed?.agentId
+    console.log('agentId', response?.choices?.[0]?.message?.parsed)
     return agentId
   } catch (error) {
     console.error('suggestAgentFromMessageContent', error)
@@ -245,7 +246,7 @@ export async function generateAutoReplyMessage(
       messages: [
         {
           role: 'system',
-          content: `You are an AI assistant that generates a reply to a user's message. Your task is to generate a reply that is relevant to the message using the same tone and language as the similar messages provided to you. Use the knowledge provided to guide your reply. You should only generate one reply, and you should provide the reply ONLY as your response. You should also provide a response context that provides additional context to the reply so that our knowledge base can expand from the message context. The response context should include relevant information from the original message and the similar knowledge so that we can refer to it later if a user asks a similar question.
+          content: `You are an AI assistant that generates a reply to a user's message. Your task is to generate a reply that is relevant to the message using the same tone and language as the similar messages provided to you. Use the knowledge provided to guide your reply. You should only generate one reply, and you should provide the reply ONLY as your response. You should also provide a response context that provides additional context to the reply so that our knowledge base can expand from the message context. The response context should include relevant information from the original message and the similar knowledge so that we can refer to it later if a user asks a similar question. For the response context, basically explain your reasoning for the reply based on the similar and previous messages.
           
           Knowledge to refer to:
           ${similarKnowledgeContent}

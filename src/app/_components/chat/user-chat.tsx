@@ -82,12 +82,12 @@ export default function ChatInterface() {
 
   const selectedThread = threadsData?.find((thread) => thread.thread.id === selectedThreadId)
   return (
-    <div className="flex">
-      <div className="mx-auto flex w-full flex-row overflow-hidden border">
+    <div className="flex h-screen">
+      <div className="mx-auto flex h-full w-full flex-row overflow-hidden border">
         {/* Sidebar */}
         <div
           ref={sidebarRef}
-          className="flex flex-col border-r border-zinc-800"
+          className="flex h-full flex-col border-r border-zinc-800"
           style={{ width: `${sidebarWidth}px`, minWidth: `${sidebarWidth}px` }}
         >
           <div className="flex items-center justify-between border-b border-zinc-800 p-4">
@@ -120,7 +120,7 @@ export default function ChatInterface() {
             </div>
           </div>
           {/* <div className="flex-1 overflow-auto"> */}
-          <ScrollArea className="max-h-[49rem]">
+          <ScrollArea className="flex-1">
             {threadDataPending && !threadsData && (
               <>
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -185,7 +185,7 @@ export default function ChatInterface() {
         <div className="w-1 cursor-col-resize bg-zinc-800" />
 
         {/* Main Chat Area */}
-        <div className="flex flex-1 flex-col">
+        <div className="flex h-full flex-1 flex-col">
           {/* Chat Header */}
           <div className="flex items-center justify-between border-b border-zinc-800 p-4">
             <div className="flex items-center gap-3">
@@ -217,8 +217,8 @@ export default function ChatInterface() {
           </div>
 
           {/* Messages */}
-          <ScrollArea className="max-h-[50rem] min-h-[50rem]">
-            <div className="flex-1 space-y-4 overflow-auto p-4">
+          <ScrollArea className="flex-1">
+            <div className="space-y-4 p-4">
               {messages?.messages &&
                 messages.messages.map((message) => (
                   <div
@@ -240,7 +240,7 @@ export default function ChatInterface() {
                     >
                       <p>{message.content}</p>
                       <span className="mt-1 block text-xs opacity-60">
-                        {message.createdAt.toLocaleString()}
+                        {message.createdAt.toLocaleString()} | {message.senderName}
                       </span>
                     </div>
                   </div>
@@ -274,7 +274,7 @@ export default function ChatInterface() {
               }}
               isGenerating={false}
             />
-            <div className="mt-6"></div>
+            <div className="mt-4"></div>
           </div>
         </div>
       </div>

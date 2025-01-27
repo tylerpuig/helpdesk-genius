@@ -310,7 +310,7 @@ export async function findSimilarMessagesFromAgentKnowledge(
 export type PreviousThreadContext = NonNullable<
   Awaited<ReturnType<typeof getPreviousThreadContext>>
 >
-export async function getPreviousThreadContext(threadId: string) {
+export async function getPreviousThreadContext(threadId: string, limit: number) {
   try {
     const previousMessages = await db.query.messagesTable.findMany({
       where: and(eq(schema.messagesTable.id, threadId)),
@@ -321,7 +321,7 @@ export async function getPreviousThreadContext(threadId: string) {
         senderEmail: true,
         role: true
       },
-      limit: 3
+      limit: limit
     })
     return previousMessages
   } catch (error) {

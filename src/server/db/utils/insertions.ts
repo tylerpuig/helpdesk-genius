@@ -300,6 +300,42 @@ export async function createNewChatMessage(
   }
 }
 
+export async function createNewAutoReplyChatMessage(
+  threadId: string,
+  content: string,
+  agentId: string
+) {
+  try {
+    const agent = await db.query.agentsTable.findFirst({
+      where: eq(schema.agentsTable.id, agentId)
+    })
+
+    if (!agent) {
+      throw new Error('Agent not found')
+    }
+
+    const formattedEmail = agent.title.replaceAll(' ', '') + '@your-workspace.com'
+
+    const [message] = await db
+      .insert(schema.messagesTable)
+      .values({
+        threadId,
+        content: content,
+        role: 'agent',
+        senderEmail: formattedEmail ?? '',
+        senderName: agent.title ?? ''
+      })
+      .returning()
+
+    // mark thre thread as unread
+    await updateIsThreadRead(threadId, false)
+
+    return message
+  } catch (error) {
+    console.error('createNewChatMessage', error)
+  }
+}
+
 export async function createLiveChatThread(chatId: string, threadId: string) {
   try {
     const [result] = await db
@@ -328,5 +364,22 @@ export async function createNewContactFromChat(email: string, name: string, work
       .onConflictDoNothing()
   } catch (err) {
     console.error('createNewContactFromChat', err)
+  }
+}
+
+export async function createKnowledgeFromAutoReply(
+  agentId: string,
+  knowledgeContent: string,
+  embeddingContent: string
+) {
+  try {
+    await db.insert(schema.knowledgeBaseEmbeddingsTable).values({
+      agentId,
+      embedding: await openaiUtils.generateEmbeddingFromText(embeddingContent),
+      rawContent: knowledgeContent,
+      rawContentSummary: await openaiUtils.generateAgentKnowledgeSummary(knowledgeContent)
+    })
+  } catch (error) {
+    console.error('createKnowledgeFromAutoReply', error)
   }
 }
