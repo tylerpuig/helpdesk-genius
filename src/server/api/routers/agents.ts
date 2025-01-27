@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
 import * as schema from '~/server/db/schema'
-import { eq, and, asc } from 'drizzle-orm'
+import { eq, and, asc, desc } from 'drizzle-orm'
 import * as openaiUtils from '~/server/integrations/openai'
 
 export const agentsRouter = createTRPCRouter({
@@ -14,6 +14,7 @@ export const agentsRouter = createTRPCRouter({
     .query(async ({ input, ctx }) => {
       const agents = await ctx.db.query.agentsTable.findMany({
         where: eq(schema.agentsTable.workspaceId, input.workspaceId),
+        orderBy: desc(schema.agentsTable.createdAt),
         limit: 10
       })
 
@@ -24,7 +25,9 @@ export const agentsRouter = createTRPCRouter({
       z.object({
         workspaceId: z.string(),
         title: z.string(),
-        description: z.string()
+        description: z.string(),
+        enabled: z.boolean(),
+        allowAutoReply: z.boolean()
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -33,7 +36,9 @@ export const agentsRouter = createTRPCRouter({
         .values({
           workspaceId: input.workspaceId,
           title: input.title,
-          description: input.description
+          description: input.description,
+          enabled: input.enabled,
+          allowAutoReply: input.allowAutoReply
         })
         .returning()
 
@@ -126,7 +131,9 @@ export const agentsRouter = createTRPCRouter({
           id: true,
           title: true,
           description: true,
-          createdAt: true
+          createdAt: true,
+          enabled: true,
+          allowAutoReply: true
         }
       })
 
@@ -138,7 +145,9 @@ export const agentsRouter = createTRPCRouter({
         agentId: z.string(),
         workspaceId: z.string(),
         title: z.string(),
-        description: z.string()
+        description: z.string(),
+        enabled: z.boolean(),
+        allowAutoReply: z.boolean()
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -146,7 +155,9 @@ export const agentsRouter = createTRPCRouter({
         .update(schema.agentsTable)
         .set({
           title: input.title,
-          description: input.description
+          description: input.description,
+          enabled: input.enabled,
+          allowAutoReply: input.allowAutoReply
         })
         .where(
           and(

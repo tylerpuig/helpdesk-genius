@@ -315,3 +315,18 @@ export async function createLiveChatThread(chatId: string, threadId: string) {
     console.error('createLiveChatThread', error)
   }
 }
+
+export async function createNewContactFromChat(email: string, name: string, workspaceId: string) {
+  try {
+    await db
+      .insert(schema.contactsTable)
+      .values({
+        name,
+        email,
+        workspaceId
+      })
+      .onConflictDoNothing()
+  } catch (err) {
+    console.error('createNewContactFromChat', err)
+  }
+}

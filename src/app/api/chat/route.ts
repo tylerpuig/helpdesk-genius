@@ -37,6 +37,10 @@ export async function POST(request: NextRequest) {
 
     if (!threadId) {
       const newChat = await dbInsertionUtils.createNewChat(workspaceId, message)
+      if (user.email && user.name) {
+        // create a new contact
+        await dbInsertionUtils.createNewContactFromChat(user.email, user.name, workspaceId)
+      }
       const subMessage: EventEmitterChatMessage = {
         notificationType: 'NEW_THREAD'
       }

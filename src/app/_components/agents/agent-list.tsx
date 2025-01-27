@@ -9,6 +9,7 @@ import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import { Label } from '~/components/ui/label'
 import { Input } from '~/components/ui/input'
+import { Badge } from '~/components/ui/badge'
 import { useToast } from '~/hooks/use-toast'
 import { Textarea } from '~/components/ui/textarea'
 import {
@@ -17,7 +18,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '~/components/ui/dropdown-menu'
-import { MoreVertical, Edit, Trash2 } from 'lucide-react'
+import { Switch } from '~/components/ui/switch'
+import { MoreVertical, Edit, Trash2, Power, MessageCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function AgentList() {
@@ -65,7 +67,22 @@ export default function AgentList() {
                 }}
               >
                 <CardTitle className="mb-2 text-xl">{agent.title}</CardTitle>
-                <CardDescription>{agent.description}</CardDescription>
+
+                <CardDescription>
+                  <div className="mb-2">{agent.description}</div>
+                  <div className="mb-2 flex items-start justify-between">
+                    <div className="flex space-x-2">
+                      <Badge variant={agent.enabled ? 'default' : 'secondary'}>
+                        <Power className="mr-1 h-3 w-3" />
+                        {agent.enabled ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                      <Badge variant={agent.allowAutoReply ? 'default' : 'secondary'}>
+                        <MessageCircle className="mr-1 h-3 w-3" />
+                        {agent.allowAutoReply ? 'Auto-reply On' : 'Auto-reply Off'}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardDescription>
               </CardHeader>
               <div className="absolute right-2 top-2">
                 <DropdownMenu>
@@ -110,12 +127,16 @@ function NewAgentDialog() {
   const [agentDetails, setAgentDetails] = useState<{
     name: string
     description: string
+    enabled: boolean
+    allowAutoReply: boolean
   }>({
     name: '',
-    description: ''
+    description: '',
+    enabled: true,
+    allowAutoReply: true
   })
 
-  const { refetch: refetchAgents } = api.agents.getWorkspaceAgents.useQuery(
+  const { refetch: refetchAgents, data } = api.agents.getWorkspaceAgents.useQuery(
     {
       workspaceId: selectedWorkspaceId
     },
@@ -124,7 +145,7 @@ function NewAgentDialog() {
     }
   )
 
-  const { data: agentInfo } = api.agents.getAgentDetails.useQuery(
+  const { data: agentInfo, refetch: refetchAgentInfo } = api.agents.getAgentDetails.useQuery(
     {
       agentId: selectedAgentId,
       workspaceId: selectedWorkspaceId
@@ -138,19 +159,29 @@ function NewAgentDialog() {
     if (selectedAgentId && agentInfo) {
       setAgentDetails({
         name: agentInfo.title,
-        description: agentInfo.description
+        description: agentInfo.description,
+        enabled: agentInfo.enabled ?? true,
+        allowAutoReply: agentInfo.allowAutoReply ?? true
       })
     }
   }, [agentInfo])
 
+  useEffect(() => {
+    if (addNewAgentDialogOpen) {
+      refetchAgentInfo()
+    }
+  }, [addNewAgentDialogOpen])
+
   function handleAgentUpdate(): void {
-    refetchAgents()
     setAgentDetails({
       name: '',
-      description: ''
+      description: '',
+      enabled: true,
+      allowAutoReply: true
     })
     setSelectedAgentId('')
     setAddNewAgentDialogOpen(false)
+    refetchAgents()
   }
 
   const createAgent = api.agents.createWorkspaceAgent.useMutation({
@@ -211,6 +242,32 @@ function NewAgentDialog() {
                 required
               />
             </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="email">Enable Agent</Label>
+              <Switch
+                id="allowAutoReply"
+                checked={agentDetails.enabled}
+                onCheckedChange={(enabled) => {
+                  setAgentDetails((prev) => ({
+                    ...prev,
+                    enabled
+                  }))
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="email">Allow Auto-Reply</Label>
+              <Switch
+                id="allowAutoReply"
+                checked={agentDetails.allowAutoReply}
+                onCheckedChange={(allowAutoReply) => {
+                  setAgentDetails((prev) => ({
+                    ...prev,
+                    allowAutoReply
+                  }))
+                }}
+              />
+            </div>
           </div>
           <div className="flex w-full">
             <Button
@@ -241,13 +298,17 @@ function NewAgentDialog() {
                     agentId: selectedAgentId,
                     workspaceId: selectedWorkspaceId,
                     title: agentDetails.name,
-                    description: agentDetails.description
+                    description: agentDetails.description,
+                    enabled: agentDetails.enabled,
+                    allowAutoReply: agentDetails.allowAutoReply
                   })
                 } else {
                   createAgent.mutate({
                     workspaceId: selectedWorkspaceId,
                     title: agentDetails.name,
-                    description: agentDetails.description
+                    description: agentDetails.description,
+                    enabled: agentDetails.enabled,
+                    allowAutoReply: agentDetails.allowAutoReply
                   })
                 }
               }}

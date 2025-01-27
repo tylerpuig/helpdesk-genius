@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '~/trpc/react'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { useAgentStore } from '~/app/_components/agents/useAgentStore'
+import { Skeleton } from '~/components/ui/skeleton'
 import AgentKnowledgeSheet from '~/app/_components/agents/add-knowledge-sheet'
 
 export default function AgentDetails({ params }: { params: { agentId: string } }) {
@@ -30,7 +31,7 @@ export default function AgentDetails({ params }: { params: { agentId: string } }
   const { selectedWorkspaceId } = useWorkspace()
   const [expandedItems, setExpandedItems] = useState<string[]>([])
 
-  const { data: agentInfo } = api.agents.getAgentDetails.useQuery({
+  const { data: agentInfo, isPending: isAgentInfoPending } = api.agents.getAgentDetails.useQuery({
     agentId: params.agentId,
     workspaceId: selectedWorkspaceId
   })
@@ -65,8 +66,17 @@ export default function AgentDetails({ params }: { params: { agentId: string } }
       </Button>
       <div className="flex justify-between">
         <div>
-          <h2 className="mb-2 text-3xl font-bold">{agentInfo?.title ?? ''}</h2>
-          <p className="text-gray-300">{agentInfo?.description ?? ''}</p>
+          {isAgentInfoPending ? (
+            <div className="space-y-4">
+              <Skeleton className="h-4 w-[200px]" />
+              <Skeleton className="h-4 w-[250px]" />
+            </div>
+          ) : (
+            <>
+              <h2 className="mb-2 text-3xl font-bold">{agentInfo?.title ?? ''}</h2>
+              <p className="text-gray-300">{agentInfo?.description ?? ''}</p>
+            </>
+          )}
         </div>
         <Button
           onClick={() => {

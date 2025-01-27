@@ -179,7 +179,7 @@ async function getAllContacts() {
   }
 }
 
-// generateNewThreads(2)
+generateNewThreads(20)
 
 async function generateNewThreads(amount: number) {
   try {
@@ -265,14 +265,14 @@ async function generateNewThreads(amount: number) {
 
       // select a random user to send a reply
       const randomUser = users[Math.floor(Math.random() * users.length)]
-      // if (thread) {
-      // await createNewEmailMessageReply(thread.id, messageContent, WORKSPACE_ID, randomUser.id)
+      if (thread) {
+        await createNewEmailMessageReply(thread.id, messageContent, WORKSPACE_ID, randomUser.id)
 
-      // const randInt = Math.floor(Math.random() * 11)
-      // if (randInt < 5) {
-      //   await markThreadAsResolved(randomUser.id, thread.id)
-      // }
-      // }
+        const randInt = Math.floor(Math.random() * 11)
+        if (randInt < 5) {
+          await markThreadAsResolved(randomUser.id, thread.id)
+        }
+      }
       // }
     }
   } catch (error) {
