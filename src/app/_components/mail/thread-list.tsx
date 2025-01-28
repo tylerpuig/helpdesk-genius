@@ -7,6 +7,7 @@ import { ScrollArea } from '~/components/ui/scroll-area'
 import { api } from '~/trpc/react'
 import { useThreadStore } from '~/hooks/store/useThread'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
+import parse from 'html-react-parser'
 
 export function MailList() {
   const {
@@ -60,7 +61,7 @@ export function MailList() {
                 <div className="flex items-center">
                   <div className="flex items-center gap-2">
                     <div className="font-semibold">
-                      {item?.title ?? ''}
+                      {parse(item?.title ?? '')}
                       {item?.isUnread && (
                         <span className="ml-2 inline-block h-2 w-2 rounded-full bg-blue-600" />
                       )}
@@ -77,10 +78,12 @@ export function MailList() {
                     })}
                   </div>
                 </div>
-                <div className="text-xs font-medium">{latestMessage?.content.substring(0, 25)}</div>
+                <div className="text-xs font-medium">
+                  {parse(latestMessage?.content.substring(0, 50) ?? '')}
+                </div>
               </div>
               <div className="line-clamp-2 text-xs text-muted-foreground">
-                {latestMessage?.content.substring(0, 300)}
+                {parse(latestMessage?.content.substring(0, 300) ?? '')}
               </div>
 
               <div className="flex items-center gap-2">

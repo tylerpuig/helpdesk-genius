@@ -1,7 +1,6 @@
 import { db } from '~/server/db'
 import { and, desc, eq } from 'drizzle-orm'
 import * as schema from '~/server/db/schema'
-import { chatEE, type EventEmitterChatMessage } from '~/server/api/routers/chat'
 import * as dbQueryUtils from '~/server/db/utils/queries'
 import * as openaiUtils from '~/server/integrations/openai'
 import * as dbInsertionUtils from '~/server/db/utils/insertions'
@@ -108,11 +107,7 @@ export async function addEmailToAgentKnowledgeBase(
 
     const previousThreadMessages = await dbQueryUtils.getPreviousThreadContext(threadId, 3)
 
-    if (!previousThreadMessages?.length) {
-      throw new Error('No previous messages found')
-    }
-
-    const prevousMessagesContent = previousThreadMessages
+    const prevousMessagesContent = (previousThreadMessages ?? [])
       .map((message) => {
         return `message: ${message.content} name: ${message.senderName} email: ${message.senderEmail} role: ${message.role} \n`
       })

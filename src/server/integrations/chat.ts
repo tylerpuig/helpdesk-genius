@@ -33,7 +33,7 @@ export async function handleAgentAutoReply(
       messageEmbedding
     )
 
-    console.log(similarMessages)
+    // console.log(similarMessages)
 
     if (!similarMessages?.length) {
       return
@@ -41,7 +41,7 @@ export async function handleAgentAutoReply(
 
     // get last 3 messages from thread
     const previousThreadMessages = await dbQueryUtils.getPreviousThreadContext(threadId, 3)
-    console.log('previousThreadMessages', previousThreadMessages)
+    // console.log('previousThreadMessages', previousThreadMessages)
 
     const replyInfo = await openaiUtils.generateAutoReplyMessage(
       messageContent,
@@ -55,22 +55,22 @@ export async function handleAgentAutoReply(
     }
 
     // get the agent id for the auto reply
-    const agentForAutoReply = await openaiUtils.suggestAgentFromMessageContent(
-      replyInfo.autoReply,
-      agents
-    )
+    // const agentForAutoReply = await openaiUtils.suggestAgentFromMessageContent(
+    //   replyInfo.autoReply,
+    //   agents
+    // )
 
-    if (!agentForAutoReply) {
-      return
-    }
+    // if (!agentForAutoReply) {
+    //   return
+    // }
 
-    console.log('agentForAutoReply', agentForAutoReply)
+    // console.log('agentForAutoReply', agentForAutoReply)
 
     // create the new message
     await dbInsertionUtils.createNewAutoReplyChatMessage(
       threadId,
       replyInfo.autoReply,
-      agentForAutoReply
+      suggestedAgentId
     )
 
     // emit
@@ -92,7 +92,7 @@ export async function handleAgentAutoReply(
 
     // add to agent knowledge
     await dbInsertionUtils.createKnowledgeFromAutoReply(
-      agentForAutoReply,
+      suggestedAgentId,
       JSON.stringify(replyInfo),
       knowledgeEmbeddingContent
     )

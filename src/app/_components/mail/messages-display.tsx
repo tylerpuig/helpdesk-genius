@@ -129,7 +129,11 @@ export function EmailMessagesDisplay() {
                     size="sm"
                     className="ml-auto px-4"
                   >
-                    Send
+                    {sendMessage.isPending ? (
+                      <span className="loading loading-dots loading-md"></span>
+                    ) : (
+                      'Reply'
+                    )}
                   </Button>
                 </div>
               </div>
