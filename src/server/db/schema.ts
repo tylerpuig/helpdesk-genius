@@ -14,6 +14,10 @@ import {
 } from 'drizzle-orm/pg-core'
 import { type AdapterAccount } from 'next-auth/adapters'
 import * as DBTypes from '~/server/db/types'
+import type {
+  DefaultAgentFunctionCategory,
+  DefaultAgentFunctionName
+} from '~/server/integrations/agents/functions/functionsSchemas'
 
 export const users = pgTable('user', {
   id: varchar('id', { length: 255 })
@@ -258,17 +262,21 @@ export const agentFunctionsTable = pgTable('agent_function', {
   agentId: varchar('agent_id', { length: 255 })
     .notNull()
     .references(() => agentsTable.id),
+  functionCategory: varchar('function_category', { length: 50 })
+    .notNull()
+    .$type<DefaultAgentFunctionCategory>(),
+  functionName: varchar('function_name', { length: 200 })
+    .notNull()
+    .$type<DefaultAgentFunctionName>(),
   name: varchar('name', { length: 100 }).notNull(),
-  description: text('description').notNull(),
-  schema: jsonb('parameters').notNull(), // Store JSON Schema
   createdAt: timestamp('created_at', { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull()
 })
 
 // Store embeddings for function matching
-export const functionEmbeddingsTable = pgTable(
-  'function_embedding',
+export const agentFunctionEmbeddingsTable = pgTable(
+  'agent_function_embeddings',
   {
     id: varchar('id', { length: 255 })
       .notNull()

@@ -13,12 +13,20 @@ CREATE TABLE "account" (
 	CONSTRAINT "account_provider_provider_account_id_pk" PRIMARY KEY("provider","provider_account_id")
 );
 --> statement-breakpoint
+CREATE TABLE "agent_function_embeddings" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"function_id" varchar(255) NOT NULL,
+	"embedding" vector(1536) NOT NULL,
+	"context" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "agent_function" (
 	"id" varchar(255) PRIMARY KEY NOT NULL,
 	"agent_id" varchar(255) NOT NULL,
+	"function_category" varchar(50) NOT NULL,
+	"function_name" varchar(200) NOT NULL,
 	"name" varchar(100) NOT NULL,
-	"description" text NOT NULL,
-	"parameters" jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 --> statement-breakpoint
@@ -51,14 +59,6 @@ CREATE TABLE "contact" (
 	"name" varchar(255),
 	"company" varchar(255),
 	"last_contacted_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "function_embedding" (
-	"id" varchar(255) PRIMARY KEY NOT NULL,
-	"function_id" varchar(255) NOT NULL,
-	"embedding" vector(1536) NOT NULL,
-	"context" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 --> statement-breakpoint
@@ -207,11 +207,11 @@ CREATE TABLE "workspace" (
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "agent_function_embeddings" ADD CONSTRAINT "agent_function_embeddings_function_id_agent_function_id_fk" FOREIGN KEY ("function_id") REFERENCES "public"."agent_function"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "agent_function" ADD CONSTRAINT "agent_function_agent_id_agent_id_fk" FOREIGN KEY ("agent_id") REFERENCES "public"."agent"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "agent" ADD CONSTRAINT "agent_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "calendar_event" ADD CONSTRAINT "calendar_event_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "contact" ADD CONSTRAINT "contact_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "function_embedding" ADD CONSTRAINT "function_embedding_function_id_agent_function_id_fk" FOREIGN KEY ("function_id") REFERENCES "public"."agent_function"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "knowledge_base_embeddings" ADD CONSTRAINT "knowledge_base_embeddings_agent_id_agent_id_fk" FOREIGN KEY ("agent_id") REFERENCES "public"."agent"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "message" ADD CONSTRAINT "message_thread_id_thread_id_fk" FOREIGN KEY ("thread_id") REFERENCES "public"."thread"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -231,11 +231,11 @@ ALTER TABLE "workspace_invitation" ADD CONSTRAINT "workspace_invitation_accepted
 ALTER TABLE "workspace_member" ADD CONSTRAINT "workspace_member_workspace_id_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspace"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspace_member" ADD CONSTRAINT "workspace_member_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_user_id_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "function_embedding_function_id_idx" ON "agent_function_embeddings" USING hnsw ("embedding" vector_cosine_ops);--> statement-breakpoint
 CREATE INDEX "calendar_event_workspace_idx" ON "calendar_event" USING btree ("workspace_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "contact_workspace_email_idx" ON "contact" USING btree ("workspace_id","email");--> statement-breakpoint
 CREATE INDEX "contact_workspace_idx" ON "contact" USING btree ("workspace_id");--> statement-breakpoint
 CREATE INDEX "contact_email_idx" ON "contact" USING btree ("email");--> statement-breakpoint
-CREATE INDEX "function_embedding_function_id_idx" ON "function_embedding" USING hnsw ("embedding" vector_cosine_ops);--> statement-breakpoint
 CREATE INDEX "knowledge_base_embeddings_agent_idx" ON "knowledge_base_embeddings" USING btree ("agent_id");--> statement-breakpoint
 CREATE INDEX "knowledge_base_embeddings_message_idx" ON "knowledge_base_embeddings" USING hnsw ("embedding" vector_cosine_ops);--> statement-breakpoint
 CREATE INDEX "message_thread_id_idx" ON "message" USING btree ("thread_id");--> statement-breakpoint
