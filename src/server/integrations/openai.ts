@@ -7,7 +7,7 @@ import { asc, eq, and, desc, sql } from 'drizzle-orm'
 import { faker } from '@faker-js/faker'
 import type { EnabledAgentData, PreviousThreadContext } from '~/server/db/utils/queries'
 
-const openai = new OpenAI({
+export const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
 
@@ -217,23 +217,23 @@ export async function generateEmailContextSummary(context: string): Promise<stri
 }
 
 const suggestAgentOuputSchema = z.object({
-  agentId: z.string()
+  agentIds: z.array(z.string())
 })
 
-export async function suggestAgentFromMessageContent(
+export async function suggestAgentsFromMessageContent(
   message: string,
   agents: NonNullable<EnabledAgentData>
-): Promise<string | undefined> {
+): Promise<string[]> {
   try {
     const response = await openai.beta.chat.completions.parse({
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: `You are an AI assistant that selects the best agent for a given message. Your task is to suggest the most relevant agent based on the message content. You should only suggest one agent, and you should provide the agent's ID ONLY as your response. If there is no relevant agent, your response should be 'unavailable'.
+          content: `You are an AI assistant that selects the best agents for a given message. Your task is to suggest the relevant agents based on the message content. You should provide the agent IDs as an array in your response. If there are no relevant agents, return an empty array.
           
           Agents:
-          ${agents.map((agent) => `- Title: ${agent.title}: Description: ${agent.description} ID: ${agent.id}`).join('\n')}
+          ${agents.map((agent) => `- Title: ${agent.title}; Description: ${agent.description}; ID: ${agent.id}`).join('\n')}
           `
         },
         {
@@ -241,14 +241,13 @@ export async function suggestAgentFromMessageContent(
           content: `Message: ${message}`
         }
       ],
-      response_format: zodResponseFormat(suggestAgentOuputSchema, 'agentId')
+      response_format: zodResponseFormat(suggestAgentOuputSchema, 'agents')
     })
 
-    const agentId = response?.choices?.[0]?.message?.parsed?.agentId
-    console.log('agentId', response?.choices?.[0]?.message?.parsed)
-    return agentId
+    return response?.choices?.[0]?.message?.parsed?.agentIds ?? []
   } catch (error) {
     console.error('suggestAgentFromMessageContent', error)
+    return []
   }
 }
 

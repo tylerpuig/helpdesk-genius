@@ -15,7 +15,9 @@ import {
   Mail,
   MessageCircle,
   ChartLine,
-  User
+  User,
+  Calendar,
+  CalendarDays
 } from 'lucide-react'
 
 import { NavMain } from '~/app/_components/dashboard/nav-main'
@@ -72,11 +74,6 @@ const data = {
       icon: MessageCircle
     },
     {
-      title: 'Contacts',
-      url: '/dashboard/contacts',
-      icon: User
-    },
-    {
       title: 'Analytics',
       url: '#',
       icon: ChartLine,
@@ -88,27 +85,14 @@ const data = {
       ]
     },
     {
-      title: 'Knowledge Base',
-      url: '#',
-      icon: BookOpen,
-      items: [
-        {
-          title: 'Introduction',
-          url: '#'
-        },
-        {
-          title: 'Get Started',
-          url: '#'
-        },
-        {
-          title: 'Tutorials',
-          url: '#'
-        },
-        {
-          title: 'Changelog',
-          url: '#'
-        }
-      ]
+      title: 'Calendar',
+      url: '/dashboard/calendar',
+      icon: CalendarDays
+    },
+    {
+      title: 'Contacts',
+      url: '/dashboard/contacts',
+      icon: User
     },
     {
       title: 'Settings',

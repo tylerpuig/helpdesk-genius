@@ -26,7 +26,7 @@ export default function CalendarView() {
         {
           id: '3',
           start: new Date('2025-01-28T10:00:00Z'),
-          end: new Date('2025-01-28T10:30:00Z'),
+          end: new Date('2025-01-28T11:30:00Z'),
           title: 'another event',
           color: 'purple'
         }

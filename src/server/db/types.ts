@@ -10,4 +10,6 @@ export type WorkspaceRole = 'owner' | 'admin' | 'member'
 export type WorkspaceInvitationStatus = 'pending' | 'accepted' | 'rejected' | 'expired'
 export type WorkspaceTag = InferSelectModel<typeof schema.tagsTable>
 
+export type CalendarEventColor = 'default' | 'blue' | 'green' | 'pink' | 'purple'
+
 export const threadStatusSchema = z.enum(['open', 'closed', 'archived', 'junk', 'trash'])

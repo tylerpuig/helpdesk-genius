@@ -205,7 +205,12 @@ const EventGroup = ({ events, hour }: { events: CalendarEvent[]; hour: Date }) =
                 height: `${hoursDifference * 100}%`
               }}
             >
-              {event.title}
+              <div className="flex flex-col">
+                <span className="text-lg text-slate-300">{event.title}</span>
+                <span className="text-lg font-normal text-slate-300">
+                  {'meeting description here'}
+                </span>
+              </div>
             </div>
           )
         })}

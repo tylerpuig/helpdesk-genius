@@ -35,7 +35,7 @@ export async function generateEmailMessageReply(
       throw new Error('Message not found')
     }
 
-    const suggestedAgentId = await openaiUtils.suggestAgentFromMessageContent(
+    const suggestedAgentId = await openaiUtils.suggestAgentsFromMessageContent(
       messageData.content,
       agents
     )
@@ -94,7 +94,7 @@ export async function addEmailToAgentKnowledgeBase(
       throw new Error('No agents found')
     }
 
-    const suggestedAgentId = await openaiUtils.suggestAgentFromMessageContent(
+    const suggestedAgentId = await openaiUtils.suggestAgentsFromMessageContent(
       messageContent,
       agents
     )

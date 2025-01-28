@@ -1,7 +1,13 @@
 import { chatEE, type EventEmitterChatMessage } from '~/server/api/routers/chat'
+import { db } from '~/server/db'
+import { eq } from 'drizzle-orm'
+import * as schema from '~/server/db/schema'
 import * as dbQueryUtils from '~/server/db/utils/queries'
 import * as openaiUtils from '~/server/integrations/openai'
 import * as dbInsertionUtils from '~/server/db/utils/insertions'
+import * as dbFunctionUtils from '~/server/integrations/agents/functions/queries'
+import * as openaiFunctionUtils from '~/server/integrations/agents/functions/openaiUtils'
+import { getAgentFunctionHandler } from '~/server/integrations/agents/functions/functionRegistry'
 
 export async function handleAgentAutoReply(
   workspaceId: string,
@@ -14,88 +20,146 @@ export async function handleAgentAutoReply(
       return
     }
 
-    const suggestedAgentId = await openaiUtils.suggestAgentFromMessageContent(
+    console.log('agents', agents)
+
+    const suggestedAgentIds = await openaiUtils.suggestAgentsFromMessageContent(
       messageContent,
       agents
     )
 
-    if (!suggestedAgentId) {
+    if (!suggestedAgentIds.length) {
       return
     }
 
-    const messageEmbedding = await openaiUtils.generateEmbeddingFromText(messageContent)
-    if (!messageEmbedding) {
-      return
-    }
+    for (const suggestedAgentId of suggestedAgentIds) {
+      const agent = await db.query.agentsTable.findFirst({
+        where: eq(schema.agentsTable.id, suggestedAgentId)
+      })
 
-    const similarMessages = await dbQueryUtils.findSimilarMessagesFromAgentKnowledge(
-      suggestedAgentId,
-      messageEmbedding
-    )
+      if (!agent) {
+        continue
+      }
 
-    // console.log(similarMessages)
+      if (agent.isCustom) {
+        const messageEmbedding = await openaiUtils.generateEmbeddingFromText(messageContent)
+        if (!messageEmbedding) {
+          return
+        }
 
-    if (!similarMessages?.length) {
-      return
-    }
+        const similarMessages = await dbQueryUtils.findSimilarMessagesFromAgentKnowledge(
+          suggestedAgentId,
+          messageEmbedding
+        )
 
-    // get last 3 messages from thread
-    const previousThreadMessages = await dbQueryUtils.getPreviousThreadContext(threadId, 3)
-    // console.log('previousThreadMessages', previousThreadMessages)
+        // console.log(similarMessages)
 
-    const replyInfo = await openaiUtils.generateAutoReplyMessage(
-      messageContent,
-      similarMessages.map((message) => message.content).join('\n\n'),
-      previousThreadMessages ?? []
-    )
-    console.log('autoReply', replyInfo)
+        if (!similarMessages?.length) {
+          return
+        }
 
-    if (!replyInfo?.autoReply) {
-      return
-    }
+        // get last 3 messages from thread
+        const previousThreadMessages = await dbQueryUtils.getPreviousThreadContext(threadId, 3)
+        // console.log('previousThreadMessages', previousThreadMessages)
 
-    // get the agent id for the auto reply
-    // const agentForAutoReply = await openaiUtils.suggestAgentFromMessageContent(
-    //   replyInfo.autoReply,
-    //   agents
-    // )
+        const replyInfo = await openaiUtils.generateAutoReplyMessage(
+          messageContent,
+          similarMessages.map((message) => message.content).join('\n\n'),
+          previousThreadMessages ?? []
+        )
+        console.log('autoReply', replyInfo)
 
-    // if (!agentForAutoReply) {
-    //   return
-    // }
+        if (!replyInfo?.autoReply) {
+          return
+        }
 
-    // console.log('agentForAutoReply', agentForAutoReply)
+        // create the new message
+        await dbInsertionUtils.createNewAutoReplyChatMessage(
+          threadId,
+          replyInfo.autoReply,
+          suggestedAgentId
+        )
 
-    // create the new message
-    await dbInsertionUtils.createNewAutoReplyChatMessage(
-      threadId,
-      replyInfo.autoReply,
-      suggestedAgentId
-    )
+        // emit
+        const subMessage: EventEmitterChatMessage = {
+          notificationType: 'NEW_MESSAGE'
+        }
+        chatEE.emit('newMessage', subMessage)
 
-    // emit
-    const subMessage: EventEmitterChatMessage = {
-      notificationType: 'NEW_MESSAGE'
-    }
-    chatEE.emit('newMessage', subMessage)
+        const knowledgeRawContent = JSON.stringify(replyInfo)
+        const previousMessageContent = (previousThreadMessages ?? []).map((message) => {
+          return `message: ${message.content} name: ${message.senderName} email: ${message.senderEmail} role: ${message.role} \n`
+        })
 
-    const knowledgeRawContent = JSON.stringify(replyInfo)
-    const previousMessageContent = (previousThreadMessages ?? []).map((message) => {
-      return `message: ${message.content} name: ${message.senderName} email: ${message.senderEmail} role: ${message.role} \n`
-    })
-
-    const knowledgeEmbeddingContent = `
+        const knowledgeEmbeddingContent = `
     ${knowledgeRawContent}
 
     ${previousMessageContent.join('\n')}
     `
 
-    // add to agent knowledge
-    await dbInsertionUtils.createKnowledgeFromAutoReply(
-      suggestedAgentId,
-      JSON.stringify(replyInfo),
-      knowledgeEmbeddingContent
-    )
+        // add to agent knowledge
+        await dbInsertionUtils.createKnowledgeFromAutoReply(
+          suggestedAgentId,
+          JSON.stringify(replyInfo),
+          knowledgeEmbeddingContent
+        )
+      } else {
+        // Handle default agent with function calling
+        const messageEmbedding = await openaiUtils.generateEmbeddingFromText(messageContent)
+        if (!messageEmbedding) continue
+
+        // Find the most relevant function
+        const functionInfo = await dbFunctionUtils.getMostRelevantFunctionSchema(
+          suggestedAgentId,
+          messageEmbedding
+        )
+        console.log('functionInfo', functionInfo)
+        if (!functionInfo) continue
+
+        // Use OpenAI to extract parameters
+        const functionParameters = await openaiFunctionUtils.extractFunctionParameters(
+          messageContent,
+          functionInfo.functionToCall
+        )
+
+        console.log('functionParameters', functionParameters)
+
+        if (!functionParameters) continue
+
+        const functionHandler = getAgentFunctionHandler(functionInfo.functionName)
+        if (!functionHandler) continue
+
+        // Execute the function parametes
+        const handlerSuccess = await functionHandler(workspaceId, functionParameters)
+
+        if (!handlerSuccess) continue
+
+        // Generate a user-friendly response
+        const functionExecutionHumanReadableResponse =
+          await openaiFunctionUtils.generateReadableResponseForFunctionResult(messageContent, {
+            functionName: functionInfo.functionName,
+            parameters: functionParameters
+          })
+
+        console.log(
+          'functionExecutionHumanReadableResponse',
+          functionExecutionHumanReadableResponse
+        )
+
+        if (!functionExecutionHumanReadableResponse) continue
+
+        // Create and emit the response
+        // await dbInsertionUtils.createNewAutoReplyChatMessage(
+        //   threadId,
+        //   functionExecutionHumanReadableResponse,
+        //   suggestedAgentId
+        // )
+
+        // const subMessage: EventEmitterChatMessage = {
+        //   notificationType: 'NEW_MESSAGE'
+        // }
+        // chatEE.emit('newMessage', subMessage)
+      }
+    }
 
     // console.log('autoReply', autoReply)
   } catch (error) {
