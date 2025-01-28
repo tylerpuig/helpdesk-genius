@@ -14,15 +14,17 @@ import { api } from '~/trpc/react'
 import { type MessageData } from '~/trpc/types'
 import { useSession } from 'next-auth/react'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
-import { Content } from '@tiptap/react'
+// import { type Content } from '@tiptap/react'
 import { MinimalTiptapEditor } from '~/app/_components/minimal-tiptap'
 import MessageUtilities from './message-utilities'
 import parse from 'html-react-parser'
+import { useEmailMessageStore } from '~/app/_components/mail/useEmailMessageStore'
 
 export function EmailMessagesDisplay() {
   const { selectedThreadId } = useThreadStore()
   const { selectedWorkspaceId } = useWorkspace()
-  const [replyContent, setReplyContent] = useState<Content>('')
+  // const [replyContent, setReplyContent] = useState<Content>('')
+  const { emailMessageContent, setEmailMessageContent } = useEmailMessageStore()
 
   const { data: messages, refetch: refetchMessages } =
     api.messages.getEmailMessagesFromThread.useQuery(
@@ -38,15 +40,15 @@ export function EmailMessagesDisplay() {
   const sendMessage = api.messages.createEmailMessageReply.useMutation({
     onSuccess: () => {
       refetchMessages()
-      setReplyContent('')
+      setEmailMessageContent('')
     }
   })
 
   function handleSendEmailReply(): void {
-    if (replyContent && selectedThreadId) {
+    if (emailMessageContent && selectedThreadId) {
       sendMessage.mutate({
         threadId: selectedThreadId,
-        content: replyContent as string,
+        content: emailMessageContent as string,
         workspaceId: selectedWorkspaceId
       })
     }
@@ -100,11 +102,13 @@ export function EmailMessagesDisplay() {
             {' '}
             {/* Fixed bottom section */}
             <Separator className="w-full" />
-            <form className="p-4">
+            <div className="p-4">
               <div className="grid gap-4">
                 <MinimalTiptapEditor
-                  value={replyContent}
-                  onChange={setReplyContent}
+                  value={emailMessageContent}
+                  onChange={(e) => {
+                    setEmailMessageContent(e as string)
+                  }}
                   className="w-full"
                   editorContentClassName="p-5"
                   output="html"
@@ -129,7 +133,7 @@ export function EmailMessagesDisplay() {
                   </Button>
                 </div>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       ) : (

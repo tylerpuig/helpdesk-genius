@@ -204,8 +204,19 @@ export const useMinimalTiptapEditor = ({
     onUpdate: ({ editor }) => handleUpdate(editor),
     onCreate: ({ editor }) => handleCreate(editor),
     onBlur: ({ editor }) => handleBlur(editor),
+    content: value,
     ...props
   })
+
+  React.useEffect(() => {
+    if (editor && value !== undefined && value !== null) {
+      // Only update if the editor content is different from the new value
+      const currentContent = getOutput(editor, output)
+      if (JSON.stringify(currentContent) !== JSON.stringify(value)) {
+        editor.commands.setContent(value)
+      }
+    }
+  }, [editor, value, output])
 
   return editor
 }

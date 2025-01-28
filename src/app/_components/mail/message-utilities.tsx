@@ -270,7 +270,7 @@ export default function MessageUtilities() {
           {/* <DropdownMenuItem>Add label</DropdownMenuItem> */}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <Tag className="mr-2 h-4 w-4" />
+              {/* <Tag className="mr-2 h-4 w-4" /> */}
               <span>Add Tag</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>

@@ -13,6 +13,12 @@ import {
 import { LinkEditPopover } from '../link/link-edit-popover'
 import { ImageEditDialog } from '../image/image-edit-dialog'
 import { ToolbarSection } from '../toolbar-section'
+import { Sparkle } from 'lucide-react'
+import { Button } from '~/components/ui/button'
+import { useEmailMessageStore } from '~/app/_components/mail/useEmailMessageStore'
+import { useThreadStore } from '~/hooks/store/useThread'
+import { api } from '~/trpc/react'
+import { useWorkspace } from '~/hooks/context/useWorkspaces'
 
 type InsertElementAction = 'codeBlock' | 'blockquote' | 'horizontalRule'
 interface InsertElement extends FormatAction {
@@ -62,6 +68,19 @@ export const SectionFive: React.FC<SectionFiveProps> = ({
   size,
   variant
 }) => {
+  const { selectedWorkspaceId } = useWorkspace()
+  const { emailMessageContent, setEmailMessageContent } = useEmailMessageStore()
+  const { selectedThreadId } = useThreadStore()
+
+  const generateEmailReply = api.messages.generateEmailMessageReply.useMutation({
+    onSuccess: (data) => {
+      console.log('data.text', data.text)
+
+      if (data.text) {
+        setEmailMessageContent(data.text)
+      }
+    }
+  })
   return (
     <>
       <LinkEditPopover editor={editor} size={size} variant={variant} />
@@ -81,6 +100,24 @@ export const SectionFive: React.FC<SectionFiveProps> = ({
         size={size}
         variant={variant}
       />
+      <Button
+        onClick={(e) => {
+          e.preventDefault()
+          generateEmailReply.mutate({
+            workspaceId: selectedWorkspaceId,
+            threadId: selectedThreadId
+          })
+        }}
+        variant="ghost"
+        size="icon"
+        className="ml-auto"
+      >
+        {generateEmailReply.isPending ? (
+          <span className="loading loading-spinner loading-sm"></span>
+        ) : (
+          <Sparkle className="size-5" />
+        )}
+      </Button>
     </>
   )
 }

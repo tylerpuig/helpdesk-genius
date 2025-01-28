@@ -172,15 +172,16 @@ function NewAgentDialog() {
     }
   }, [addNewAgentDialogOpen])
 
-  function handleAgentUpdate(): void {
+  async function handleAgentUpdate(): Promise<void> {
+    setAddNewAgentDialogOpen(false)
     setAgentDetails({
       name: '',
       description: '',
       enabled: true,
       allowAutoReply: true
     })
+    await new Promise((resolve) => setTimeout(resolve, 200))
     setSelectedAgentId('')
-    setAddNewAgentDialogOpen(false)
     refetchAgents()
   }
 
