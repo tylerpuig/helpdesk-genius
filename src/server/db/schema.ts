@@ -9,7 +9,8 @@ import {
   varchar,
   pgTable,
   boolean,
-  vector
+  vector,
+  jsonb
 } from 'drizzle-orm/pg-core'
 import { type AdapterAccount } from 'next-auth/adapters'
 import * as DBTypes from '~/server/db/types'
@@ -242,11 +243,54 @@ export const agentsTable = pgTable('agent', {
   title: varchar('title', { length: 100 }).notNull(),
   enabled: boolean('enabled').default(true),
   allowAutoReply: boolean('allow_auto_reply').default(true),
+  isCustom: boolean('is_custom').default(true),
   description: text('description').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull()
 })
+
+export const agentFunctionsTable = pgTable('agent_function', {
+  id: varchar('id', { length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  agentId: varchar('agent_id', { length: 255 })
+    .notNull()
+    .references(() => agentsTable.id),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description').notNull(),
+  schema: jsonb('parameters').notNull(), // Store JSON Schema
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull()
+})
+
+// Store embeddings for function matching
+export const functionEmbeddingsTable = pgTable(
+  'function_embedding',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    functionId: varchar('function_id', { length: 255 })
+      .notNull()
+      .references(() => agentFunctionsTable.id),
+    embedding: vector('embedding', { dimensions: 1536 }).notNull(),
+    // The text that was embedded
+    context: text('context').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (functionEmbeddings) => [
+    index('function_embedding_function_id_idx').using(
+      'hnsw',
+      functionEmbeddings.embedding.op('vector_cosine_ops')
+    )
+  ]
+)
 
 export const knowledgeBaseEmbeddingsTable = pgTable(
   'knowledge_base_embeddings',
@@ -449,6 +493,28 @@ export const threadTagsTable = pgTable(
     index('thread_tag_thread_idx').on(threadTag.threadId),
     index('thread_tag_tag_idx').on(threadTag.tagId)
   ]
+)
+
+export const calendarEventTable = pgTable(
+  'calendar_event',
+  {
+    id: varchar('id', { length: 255 })
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    workspaceId: varchar('workspace_id', { length: 255 })
+      .notNull()
+      .references(() => workspacesTable.id),
+    title: varchar('title', { length: 100 }).notNull(),
+    description: text('description').notNull().default(''),
+    start: timestamp('start', { withTimezone: true }).notNull(),
+    end: timestamp('end', { withTimezone: true }).notNull(),
+    color: varchar('color').notNull().$type<DBTypes.CalendarEventColor>(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull()
+  },
+  (event) => [index('calendar_event_workspace_idx').on(event.workspaceId)]
 )
 
 export const tagsRelations = relations(tagsTable, ({ one, many }) => ({
