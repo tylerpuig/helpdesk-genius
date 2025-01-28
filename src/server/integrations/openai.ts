@@ -191,6 +191,31 @@ export async function generateAgentKnowledgeSummary(knowledge: string) {
   return ''
 }
 
+export async function generateEmailContextSummary(context: string): Promise<string> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `Based on the previous messages, summarize the content of the emails and of the response provided. Keep it less than 50 words. Try to be descriptive and use words / phrases so we can look them up later to use for our knowledge base and for future emails.`
+        },
+        {
+          role: 'user',
+          content: `Summarize this: ${context}`
+        }
+      ]
+    })
+
+    const summary = response?.choices?.[0]?.message?.content ?? ''
+    return summary
+  } catch (error) {
+    console.error('generateAgentKnowledgeSummary', error)
+  }
+
+  return ''
+}
+
 const suggestAgentOuputSchema = z.object({
   agentId: z.string()
 })

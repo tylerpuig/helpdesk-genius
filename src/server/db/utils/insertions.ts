@@ -4,6 +4,7 @@ import { desc, eq, sql, and } from 'drizzle-orm'
 import { type TRPCContext } from '~/server/api/trpc'
 import * as openaiUtils from '~/server/integrations/openai'
 import bcrypt from 'bcrypt'
+import * as emailGenerationUtils from '~/server/integrations/email'
 
 export async function createNewEmailMessageReply(
   threadId: string,
@@ -54,7 +55,8 @@ export async function createNewEmailMessageReply(
     }
 
     if (newMessage?.id) {
-      await openaiUtils.generateEmailMessageReply(newMessage.id, threadId)
+      // await openaiUtils.generateEmailMessageReply(newMessage.id, threadId)
+      await emailGenerationUtils.addEmailToAgentKnowledgeBase(messageContent, workspaceId, threadId)
     }
   } catch (error) {
     console.error('createNewEmailMessageReply', error)

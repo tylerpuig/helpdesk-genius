@@ -5,6 +5,7 @@ import * as schema from '~/server/db/schema'
 import * as dbInsertionUtils from '~/server/db/utils/insertions'
 import { threadStatusSchema } from '~/server/db/types'
 import { type ThreadPriority } from '~/server/db/types'
+import { generateEmailMessageReply } from '~/server/integrations/email'
 
 export const messagesRouter = createTRPCRouter({
   viewEmailMessageThreads: protectedProcedure
@@ -168,5 +169,12 @@ export const messagesRouter = createTRPCRouter({
       })
 
       return tags
+    }),
+  generateEmailMessageReply: protectedProcedure
+    .input(z.object({ workspaceId: z.string(), threadId: z.string() }))
+    .mutation(async ({ input }) => {
+      const text = await generateEmailMessageReply(input.workspaceId, input.threadId)
+
+      return { text }
     })
 })

@@ -179,7 +179,7 @@ async function getAllContacts() {
   }
 }
 
-generateNewThreads(20)
+generateNewThreads(10)
 
 async function generateNewThreads(amount: number) {
   try {
@@ -207,8 +207,8 @@ async function generateNewThreads(amount: number) {
       // const randomContact = currentContacts[Math.floor(Math.random() * currentContacts.length)]
 
       const randomDate = new Date()
-      const randInt = Math.floor(Math.random() * 7)
-      randomDate.setDate(randomDate.getDate() - randInt)
+      // const randInt = Math.floor(Math.random() * 7)
+      // randomDate.setDate(randomDate.getDate() - randInt)
 
       // Create thread
       const [thread] = await db
@@ -264,15 +264,15 @@ async function generateNewThreads(amount: number) {
         .where(eq(schema.threadsTable.id, thread.id))
 
       // select a random user to send a reply
-      const randomUser = users[Math.floor(Math.random() * users.length)]
-      if (thread) {
-        await createNewEmailMessageReply(thread.id, messageContent, WORKSPACE_ID, randomUser.id)
+      // const randomUser = users[Math.floor(Math.random() * users.length)]
+      // if (thread) {
+      //   await createNewEmailMessageReply(thread.id, messageContent, WORKSPACE_ID, randomUser.id)
 
-        const randInt = Math.floor(Math.random() * 11)
-        if (randInt < 5) {
-          await markThreadAsResolved(randomUser.id, thread.id)
-        }
-      }
+      //   const randInt = Math.floor(Math.random() * 11)
+      //   if (randInt < 5) {
+      //     await markThreadAsResolved(randomUser.id, thread.id)
+      //   }
+      // }
       // }
     }
   } catch (error) {
