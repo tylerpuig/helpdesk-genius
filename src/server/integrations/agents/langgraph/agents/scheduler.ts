@@ -27,6 +27,7 @@ async function extractDateTimeFromMessage(message: string) {
 
   try {
     const content = getMessageContent(response)
+    console.log('extractDateTimeFromMessage content:', content)
     return JSON.parse(content) as { startTime: string; endTime: string; duration: number } | null
   } catch {
     return null
@@ -52,6 +53,7 @@ export async function promptForDateTime(
     return {
       messages: state.messages,
       agentParams: {
+        ...state.agentParams,
         scheduling: {
           startTime: extracted.startTime,
           endTime: extracted.endTime,
@@ -69,6 +71,8 @@ export async function promptForDateTime(
       Example: "What time would you like the meeting? You can specify start/end times or how long you would like to meeting to last."`),
     new HumanMessage(content)
   ])
+
+  console.log('promptForDateTime response:', response)
 
   const question = new AIMessage({
     content: typeof response.content === 'string' ? response.content : ''

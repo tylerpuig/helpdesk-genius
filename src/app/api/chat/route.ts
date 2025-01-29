@@ -7,6 +7,7 @@ import {
   type AgentThreadStateCache,
   handleAgentAutoReplyLangChain
 } from '~/server/integrations/agents/langgraph/router'
+import { getMessageContent } from '~/server/integrations/agents/langgraph/utils'
 
 export const runtime = 'nodejs'
 
@@ -49,41 +50,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // let threadId = await dbQueryUtils.getThreadIdFromChatId(chatId)
+    let threadId = await dbQueryUtils.getThreadIdFromChatId(chatId)
 
+    if (!threadId) {
+      const newChat = await dbInsertionUtils.createNewChat(workspaceId, message)
+      if (user.email && user.name) {
+        // create a new contact
+        await dbInsertionUtils.createNewContactFromChat(user.email, user.name, workspaceId)
+      }
+      const subMessage: EventEmitterChatMessage = {
+        notificationType: 'NEW_THREAD'
+      }
+      chatEE.emit('newMessage', subMessage)
+      if (!newChat) {
+        return NextResponse.json({ error: 'Failed to create new chat' }, { status: 500 })
+      }
+      threadId = newChat.id
+      await dbInsertionUtils.createLiveChatThread(chatId, threadId)
+      // chatCache.set(chatId, threadId)
+    }
+
+    // let threadId = threadIdCache.get(chatId)
     // if (!threadId) {
-    //   const newChat = await dbInsertionUtils.createNewChat(workspaceId, message)
-    //   if (user.email && user.name) {
-    //     // create a new contact
-    //     await dbInsertionUtils.createNewContactFromChat(user.email, user.name, workspaceId)
-    //   }
-    //   const subMessage: EventEmitterChatMessage = {
-    //     notificationType: 'NEW_THREAD'
-    //   }
-    //   chatEE.emit('newMessage', subMessage)
-    //   if (!newChat) {
-    //     return NextResponse.json({ error: 'Failed to create new chat' }, { status: 500 })
-    //   }
-    //   threadId = newChat.id
-    //   await dbInsertionUtils.createLiveChatThread(chatId, threadId)
-    //   // chatCache.set(chatId, threadId)
+    // threadId = generateRandomString(10)
+    // threadIdCache.set(chatId, threadId)
+
+    // const newState = await handleAgentAutoReplyLangChain(workspaceId, threadId, message)
+    // if (!newState) {
+    // return NextResponse.json({ error: 'Failed to get state' }, { status: 500 })
     // }
 
-    let threadId = threadIdCache.get(chatId)
-    if (!threadId) {
-      threadId = generateRandomString(10)
-      threadIdCache.set(chatId, threadId)
-
-      const newState = await handleAgentAutoReplyLangChain(workspaceId, threadId, message)
-
-      langChainCache.set(chatId, newState)
-      console.log('newState', newState?.messages)
-    }
+    // langChainCache.set(chatId, newState)
+    // console.log('newState', newState?.messages)
+    // }
 
     const currentState = langChainCache.get(chatId)
     if (!currentState) {
-      return NextResponse.json({ error: 'Failed to get state' }, { status: 500 })
+      await dbInsertionUtils.createNewChatMessage(threadId, message, user, 'customer')
+      const firstState = await handleAgentAutoReplyLangChain(workspaceId, threadId, message)
+      if (!firstState) {
+        return NextResponse.json({ error: 'Failed to get state' }, { status: 500 })
+      }
+      langChainCache.set(chatId, firstState)
+      const messageReply = firstState?.messages?.at(-1)
+      if (!messageReply) {
+        return NextResponse.json({ error: 'Failed to get message reply' }, { status: 500 })
+      }
+      const content = getMessageContent(messageReply)
+      await dbInsertionUtils.createNewChatMessage(threadId, content, user, 'agent')
+      return NextResponse.json({
+        response: `Received message: ${message}`,
+        timestamp: Date.now(),
+        threadId
+      })
     }
+    await dbInsertionUtils.createNewChatMessage(threadId, message, user, 'customer')
 
     const newState = await handleAgentAutoReplyLangChain(
       workspaceId,
@@ -92,11 +113,19 @@ export async function POST(request: NextRequest) {
       currentState
     )
 
-    langChainCache.set(chatId, newState)
+    if (newState) {
+      langChainCache.set(chatId, newState)
+      console.log('newState', newState)
+    }
 
-    console.log('newState', newState?.messages)
+    const lastMessage = newState?.messages?.at(-1)
+    // console.log('lastMessage', lastMessage)
 
-    // await dbInsertionUtils.createNewChatMessage(threadId, message, user)
+    if (lastMessage?.content) {
+      const messageContent = getMessageContent(lastMessage)
+      await dbInsertionUtils.createNewChatMessage(threadId, messageContent, user, 'agent')
+    }
+    // console.log('newState', newState?.messages)
 
     const response: ChatResponse = {
       response: `Received message: ${message}`,

@@ -262,7 +262,9 @@ export async function getThreadIdFromChatId(chatId: string): Promise<string | un
   }
 }
 
-export type EnabledAgentData = Awaited<ReturnType<typeof getEnabledAgentsForWorkspace>>
+export type EnabledAgentData = NonNullable<
+  Awaited<ReturnType<typeof getEnabledAgentsForWorkspace>>
+>[number]
 export async function getEnabledAgentsForWorkspace(workspaceId: string) {
   try {
     const agents = await db.query.agentsTable.findMany({

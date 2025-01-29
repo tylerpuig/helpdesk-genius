@@ -279,7 +279,8 @@ export async function createNewChat(workspaceId: string, message: string) {
 export async function createNewChatMessage(
   threadId: string,
   content: string,
-  userInfo: { name: string; email: string }
+  userInfo: { name: string; email: string },
+  role: 'customer' | 'agent'
 ) {
   try {
     const [message] = await db
@@ -287,7 +288,7 @@ export async function createNewChatMessage(
       .values({
         threadId,
         content: content,
-        role: 'customer',
+        role: role,
         senderEmail: userInfo?.email ?? '',
         senderName: userInfo?.name ?? ''
       })

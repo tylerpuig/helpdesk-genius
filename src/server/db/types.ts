@@ -9,6 +9,7 @@ export type ThreadPriority = 'low' | 'medium' | 'high'
 export type WorkspaceRole = 'owner' | 'admin' | 'member'
 export type WorkspaceInvitationStatus = 'pending' | 'accepted' | 'rejected' | 'expired'
 export type WorkspaceTag = InferSelectModel<typeof schema.tagsTable>
+export type DBAgent = InferSelectModel<typeof schema.agentsTable>
 
 export type CalendarEventColor = 'default' | 'blue' | 'green' | 'pink' | 'purple'
 
