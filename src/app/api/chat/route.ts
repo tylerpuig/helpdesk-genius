@@ -3,6 +3,10 @@ import * as dbInsertionUtils from '~/server/db/utils/insertions'
 import * as dbQueryUtils from '~/server/db/utils/queries'
 import * as chatUtils from '~/server/integrations/chat'
 import { chatEE, type EventEmitterChatMessage } from '~/server/api/routers/chat'
+import {
+  type AgentThreadStateCache,
+  handleAgentAutoReplyLangChain
+} from '~/server/integrations/agents/langgraph/router'
 
 export const runtime = 'nodejs'
 
@@ -22,6 +26,18 @@ type ChatResponse = {
   threadId: string
 }
 
+// generate random string
+
+function generateRandomString(length: number) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let result = ''
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length))
+  }
+  return result
+}
+const langChainCache = new Map<string, AgentThreadStateCache>()
+const threadIdCache = new Map<string, string>()
 // const chatCache = new Map<string, string>()
 
 export async function POST(request: NextRequest) {
@@ -33,27 +49,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    let threadId = await dbQueryUtils.getThreadIdFromChatId(chatId)
+    // let threadId = await dbQueryUtils.getThreadIdFromChatId(chatId)
 
+    // if (!threadId) {
+    //   const newChat = await dbInsertionUtils.createNewChat(workspaceId, message)
+    //   if (user.email && user.name) {
+    //     // create a new contact
+    //     await dbInsertionUtils.createNewContactFromChat(user.email, user.name, workspaceId)
+    //   }
+    //   const subMessage: EventEmitterChatMessage = {
+    //     notificationType: 'NEW_THREAD'
+    //   }
+    //   chatEE.emit('newMessage', subMessage)
+    //   if (!newChat) {
+    //     return NextResponse.json({ error: 'Failed to create new chat' }, { status: 500 })
+    //   }
+    //   threadId = newChat.id
+    //   await dbInsertionUtils.createLiveChatThread(chatId, threadId)
+    //   // chatCache.set(chatId, threadId)
+    // }
+
+    let threadId = threadIdCache.get(chatId)
     if (!threadId) {
-      const newChat = await dbInsertionUtils.createNewChat(workspaceId, message)
-      if (user.email && user.name) {
-        // create a new contact
-        await dbInsertionUtils.createNewContactFromChat(user.email, user.name, workspaceId)
-      }
-      const subMessage: EventEmitterChatMessage = {
-        notificationType: 'NEW_THREAD'
-      }
-      chatEE.emit('newMessage', subMessage)
-      if (!newChat) {
-        return NextResponse.json({ error: 'Failed to create new chat' }, { status: 500 })
-      }
-      threadId = newChat.id
-      await dbInsertionUtils.createLiveChatThread(chatId, threadId)
-      // chatCache.set(chatId, threadId)
+      threadId = generateRandomString(10)
+      threadIdCache.set(chatId, threadId)
+
+      const newState = await handleAgentAutoReplyLangChain(workspaceId, threadId, message)
+
+      langChainCache.set(chatId, newState)
+      console.log('newState', newState?.messages)
     }
 
-    await dbInsertionUtils.createNewChatMessage(threadId, message, user)
+    const currentState = langChainCache.get(chatId)
+    if (!currentState) {
+      return NextResponse.json({ error: 'Failed to get state' }, { status: 500 })
+    }
+
+    const newState = await handleAgentAutoReplyLangChain(
+      workspaceId,
+      threadId,
+      message,
+      currentState
+    )
+
+    langChainCache.set(chatId, newState)
+
+    console.log('newState', newState?.messages)
+
+    // await dbInsertionUtils.createNewChatMessage(threadId, message, user)
 
     const response: ChatResponse = {
       response: `Received message: ${message}`,
@@ -67,7 +110,7 @@ export async function POST(request: NextRequest) {
     chatEE.emit('newMessage', subMessage)
 
     // auto reply with agent if applicable
-    void chatUtils.handleAgentAutoReply(workspaceId, threadId, message)
+    // void chatUtils.handleAgentAutoReply(workspaceId, threadId, message)
     return NextResponse.json(response)
   } catch (error) {
     console.error('Error processing chat message:', error)
