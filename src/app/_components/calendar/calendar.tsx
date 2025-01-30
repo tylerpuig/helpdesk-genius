@@ -1,5 +1,5 @@
 'use client'
-
+import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   Calendar,
@@ -17,16 +17,19 @@ import { type CalendarEvent } from '~/app/_components/calendar/full-calendar'
 import { api } from '~/trpc/react'
 import { useWorkspace } from '~/hooks/context/useWorkspaces'
 import { useCalendar } from '~/app/_components/calendar/full-calendar'
+import ViewCalendarEventSheet from '~/app/_components/calendar/view-calendar-event-sheet'
 
 export default function CalendarView() {
   const { selectedWorkspaceId } = useWorkspace()
+  // const [eventsState, setEventsState] = useState<CalendarEvent[] | null>(null)
 
-  const { data: events, isLoading } = api.calendar.getCalendarEvents.useQuery({
+  const { data: events, isPending } = api.calendar.getCalendarEvents.useQuery({
     workspaceId: selectedWorkspaceId
   })
 
   return (
     <>
+      <ViewCalendarEventSheet />
       {events && (
         <Calendar events={events}>
           <div className="flex h-dvh flex-col py-6">

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/utils'
 import { VariantProps, cva } from 'class-variance-authority'
@@ -36,6 +37,7 @@ import {
   useState
 } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useCalendarStore } from '~/app/_components/calendar/useCalendarStore'
 
 const monthEventVariants = cva('size-2 rounded-full', {
   variants: {
@@ -97,7 +99,7 @@ export type CalendarEvent = {
 type CalendarProps = {
   children: ReactNode
   defaultDate?: Date
-  events?: CalendarEvent[]
+  events: CalendarEvent[]
   view?: View
   locale?: Locale
   enableHotkeys?: boolean
@@ -112,12 +114,17 @@ const Calendar = ({
   enableHotkeys = true,
   view: _defaultMode = 'month',
   onEventClick,
-  events: defaultEvents = [],
+  events,
   onChangeView
 }: CalendarProps) => {
   const [view, setView] = useState<View>(_defaultMode)
   const [date, setDate] = useState(defaultDate)
-  const [events, setEvents] = useState<CalendarEvent[]>(defaultEvents)
+  // const [events, setEvents] = useState<CalendarEvent[]>(defaultEvents)
+  const [internalEvents, setInternalEvents] = useState<CalendarEvent[]>(events)
+
+  useEffect(() => {
+    setInternalEvents(events)
+  }, [events])
 
   const changeView = (view: View) => {
     setView(view)
@@ -147,8 +154,8 @@ const Calendar = ({
         setView,
         date,
         setDate,
-        events,
-        setEvents,
+        events: internalEvents,
+        setEvents: setInternalEvents,
         locale,
         enableHotkeys,
         onEventClick,
@@ -191,6 +198,7 @@ CalendarViewTrigger.displayName = 'CalendarViewTrigger'
 const EventGroup = ({ events, hour }: { events: CalendarEvent[]; hour: Date }) => {
   const { view } = useCalendar()
   const isDayOrWeekView = view === 'day' || view === 'week'
+  const { setSelectedCalendarEventId, setViewCalendarEventSheetOpen } = useCalendarStore()
 
   return (
     <div className="h-20 border-t last:border-b">
@@ -202,6 +210,10 @@ const EventGroup = ({ events, hour }: { events: CalendarEvent[]; hour: Date }) =
 
           return (
             <div
+              onClick={() => {
+                setSelectedCalendarEventId(event.id)
+                setViewCalendarEventSheetOpen(true)
+              }}
               key={event.id}
               className={cn(
                 'relative hover:cursor-pointer hover:bg-purple-800',
@@ -335,8 +347,8 @@ const CalendarWeekView = () => {
 const CalendarMonthView = () => {
   const { date, view, events, locale, setDate, setView } = useCalendar()
 
-  const monthDates = useMemo(() => getDaysInMonth(date), [date])
-  const weekDays = useMemo(() => generateWeekdays(locale), [locale])
+  const monthDates = useMemo(() => getDaysInMonth(date), [date, events])
+  const weekDays = useMemo(() => generateWeekdays(locale), [locale, events])
 
   if (view !== 'month') return null
 
