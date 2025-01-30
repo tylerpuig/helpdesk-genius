@@ -3,11 +3,14 @@ import * as dbInsertionUtils from '~/server/db/utils/insertions'
 import * as dbQueryUtils from '~/server/db/utils/queries'
 import * as chatUtils from '~/server/integrations/chat'
 import { chatEE, type EventEmitterChatMessage } from '~/server/api/routers/chat'
-import {
-  type AgentThreadStateCache,
-  handleAgentAutoReplyLangChain
-} from '~/server/integrations/agents/langgraph/router'
+import {} from // type AgentThreadStateCache
+// handleAgentAutoReplyLangChain
+'~/server/integrations/agents/langgraph/router'
 import { getMessageContent } from '~/server/integrations/agents/langgraph/utils'
+import {
+  handleAgentAutoReply,
+  type AgentThreadStateCache
+} from '~/server/integrations/agents/knowledge/router'
 
 export const runtime = 'nodejs'
 
@@ -87,7 +90,7 @@ export async function POST(request: NextRequest) {
     const currentState = langChainCache.get(chatId)
     if (!currentState) {
       await dbInsertionUtils.createNewChatMessage(threadId, message, user, 'customer')
-      const firstState = await handleAgentAutoReplyLangChain(workspaceId, threadId, message)
+      const firstState = await handleAgentAutoReply(workspaceId, threadId, message)
       if (!firstState) {
         return NextResponse.json({ error: 'Failed to get state' }, { status: 500 })
       }
@@ -98,7 +101,7 @@ export async function POST(request: NextRequest) {
       }
       const content = getMessageContent(messageReply)
       await dbInsertionUtils.createNewChatMessage(threadId, content, user, 'agent')
-      console.log('currentState', currentState)
+      // console.log('currentState', currentState)
       return NextResponse.json({
         response: `Received message: ${message}`,
         timestamp: Date.now(),
@@ -107,16 +110,11 @@ export async function POST(request: NextRequest) {
     }
     await dbInsertionUtils.createNewChatMessage(threadId, message, user, 'customer')
 
-    const newState = await handleAgentAutoReplyLangChain(
-      workspaceId,
-      threadId,
-      message,
-      currentState
-    )
+    const newState = await handleAgentAutoReply(workspaceId, threadId, message, currentState)
 
     if (newState) {
       langChainCache.set(chatId, newState)
-      console.log('newState', newState)
+      // console.log('newState', newState)
     }
 
     const lastMessage = newState?.messages?.at(-1)
@@ -126,7 +124,7 @@ export async function POST(request: NextRequest) {
       const messageContent = getMessageContent(lastMessage)
       await dbInsertionUtils.createNewChatMessage(threadId, messageContent, user, 'agent')
     }
-    console.log('newState', newState)
+    // console.log('newState', newState)
 
     const response: ChatResponse = {
       response: `Received message: ${message}`,

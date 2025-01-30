@@ -12,7 +12,7 @@ import {
   findSimilarMessagesFromAgentKnowledge,
   getPreviousThreadContext
 } from '~/server/db/utils/queries'
-import { type CalendarCreateEventParams } from '~/server/integrations/agents/langgraph/agents/scheduler'
+import { type CalendarCreateEventParams } from '~/server/integrations/agents/knowledge/requests'
 import { getCustomAgents } from '~/server/integrations/agents/langgraph/agents/custom'
 import * as openaiRequests from '~/server/integrations/agents/knowledge/requests'
 import * as knowledgeHelpers from '~/server/integrations/agents/knowledge/helpers'
@@ -91,7 +91,7 @@ async function routeAgent(state: typeof StateAnnotation.State): Promise<Partial<
   const messages = state.messages
 
   // load the custom agents if not loaded
-  if (!state.agentParams.agentsLoaded) {
+  if (!state.agentParams.agentsLoaded || state.agentParams.agents.length === 0) {
     const customAgents = await getCustomAgents(state.agentParams.workspaceId)
     state.agentParams.agents = customAgents ?? []
     state.agentParams.agentsLoaded = true
@@ -106,11 +106,14 @@ async function routeAgent(state: typeof StateAnnotation.State): Promise<Partial<
     `
     })
     .join('\n')
+    .slice(1)
 
   const suggestAgentsForMessage = await openaiRequests.getSuggestedAgentsFromMessageContent(
     messageContent,
-    state.agentParams.agents
+    state.agentParams.agents,
+    state
   )
+  console.log('suggestAgentsForMessage', suggestAgentsForMessage)
 
   return {
     agentParams: {
@@ -130,6 +133,10 @@ function decideNextStep(state: typeof StateAnnotation.State) {
     return 'agent' // Continue to next agent
   }
 
+  // Clear the pending agents when we're done
+  state.agentParams.pendingAgentIds = []
+  state.agentParams.selectedAgentIdIndex = 0
+
   return 'end' // No more agents to process
 }
 
@@ -137,15 +144,32 @@ async function processMessage(
   state: typeof StateAnnotation.State
 ): Promise<Partial<AgentThreadState>> {
   const { selectedAgentIdIndex, pendingAgentIds } = state.agentParams
+  console.log('selectedAgentIdIndex', selectedAgentIdIndex, 'pendingAgentIds', pendingAgentIds)
   const currentAgentId = pendingAgentIds[selectedAgentIdIndex]
+  console.log('currentAgentId', currentAgentId)
   if (!currentAgentId) {
     return state
   }
 
   let aiReply: AIMessage | undefined = undefined
   if (currentAgentId === 'scheduler') {
+    const { event, responseContent } = await openaiRequests.tryGetCalendarEventFromMessage(state)
+
+    if (knowledgeHelpers.eventHasRequiredFields(event)) {
+      console.log('event details confirmed', event)
+    }
+
+    console.log('event partial details', event)
+
+    aiReply = new AIMessage({
+      content: responseContent
+    })
   } else if (currentAgentId === 'greeter') {
     // Generate a greeting message
+    const messageReply = await openaiRequests.generateGreetingMessage(state)
+    aiReply = new AIMessage({
+      content: messageReply
+    })
   } else {
     // Generate a response for the current agent
     const messageReply = await openaiRequests.respondToUserMessage(state, currentAgentId)
@@ -189,31 +213,41 @@ export async function handleAgentAutoReply(
     let messages: BaseMessage[] = []
 
     if (previousState?.messages?.length) {
-      messages = previousState.messages
+      messages = [...previousState.messages, new HumanMessage(messageContent)]
     } else {
       messages = await knowledgeHelpers.formatInitialMessage(messageContent)
     }
 
-    const result = await app.invoke({
-      messages: messages,
-      agentParams: {
-        scheduling: previousState?.agentParams?.scheduling ?? {
-          startTime: '',
-          endTime: '',
-          title: '',
-          description: '',
-          duration: 0
-        },
-        workspaceId: previousState?.agentParams?.workspaceId ?? workspaceId,
-        threadId: previousState?.agentParams?.threadId ?? threadId,
-        agentsLoaded: previousState?.agentParams?.agentsLoaded ?? false,
-        agents: previousState?.agentParams?.agents ?? [],
-        agentIds: previousState?.agentParams?.agentIds ?? [],
-        schedulingStatus: previousState?.agentParams?.schedulingStatus ?? 'pending',
-        pendingAgentIds: previousState?.agentParams?.pendingAgentIds ?? [],
-        selectedAgentIdIndex: previousState?.agentParams?.selectedAgentIdIndex ?? 0
+    const result = await app.invoke(
+      {
+        messages: messages,
+        agentParams: {
+          scheduling: previousState?.agentParams?.scheduling ?? {
+            startTime: '',
+            endTime: '',
+            title: '',
+            description: '',
+            duration: 0
+          },
+          workspaceId: previousState?.agentParams?.workspaceId ?? workspaceId,
+          threadId: previousState?.agentParams?.threadId ?? threadId,
+          agentsLoaded: previousState?.agentParams?.agentsLoaded ?? false,
+          agents: previousState?.agentParams?.agents ?? [],
+          agentIds: previousState?.agentParams?.agentIds ?? [],
+          schedulingStatus: previousState?.agentParams?.schedulingStatus ?? 'pending',
+          pendingAgentIds: previousState?.agentParams?.pendingAgentIds ?? [],
+          selectedAgentIdIndex: previousState?.agentParams?.selectedAgentIdIndex ?? 0
+        }
+      },
+      {
+        configurable: {
+          thread_id: previousState?.agentParams?.threadId ?? threadId,
+          state: previousState // Pass the previous state to the tool
+        }
       }
-    })
+    )
+
+    return result
   } catch (error) {
     console.error('generateAutoReplyMessage', error)
   }

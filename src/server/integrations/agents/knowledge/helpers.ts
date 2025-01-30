@@ -1,4 +1,5 @@
 import { BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages'
+import { type CalendarCreateEventParams } from '~/server/integrations/agents/knowledge/requests'
 
 export async function formatInitialMessage(userMessage: string): Promise<BaseMessage[]> {
   return [
@@ -8,4 +9,8 @@ export async function formatInitialMessage(userMessage: string): Promise<BaseMes
     `),
     new HumanMessage(userMessage)
   ]
+}
+
+export function eventHasRequiredFields(event: CalendarCreateEventParams) {
+  return event?.title && event?.startTime && event?.endTime && event?.duration && event?.description
 }
