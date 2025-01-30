@@ -5,6 +5,11 @@ import { type TRPCContext } from '~/server/api/trpc'
 import * as openaiUtils from '~/server/integrations/openai'
 import bcrypt from 'bcrypt'
 import * as emailGenerationUtils from '~/server/integrations/email'
+import {
+  type CalendarCreateEventParams,
+  calendarEventSchemaStrict
+} from '~/server/integrations/agents/knowledge/requests'
+import { eventHasRequiredFields } from '~/server/integrations/agents/knowledge/helpers'
 
 export async function createNewEmailMessageReply(
   threadId: string,
@@ -384,5 +389,28 @@ export async function createKnowledgeFromAutoReply(
     })
   } catch (error) {
     console.error('createKnowledgeFromAutoReply', error)
+  }
+}
+
+export async function createCalendarEvent(
+  eventDetails: CalendarCreateEventParams,
+  workspaceId: string
+): Promise<void> {
+  try {
+    // const parsedEvent = calendarEventSchemaStrict.parse(eventDetails)
+    if (!eventDetails.title || !eventDetails.startTime || !eventDetails.endTime) {
+      return
+    }
+
+    await db.insert(schema.calendarEventTable).values({
+      title: eventDetails.title,
+      description: eventDetails.description,
+      start: new Date(eventDetails.startTime),
+      end: new Date(eventDetails.endTime),
+      color: 'purple',
+      workspaceId
+    })
+  } catch (err) {
+    console.error('createCalendarEvent', err)
   }
 }

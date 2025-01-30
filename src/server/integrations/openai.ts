@@ -294,6 +294,3 @@ export async function generateAutoReplyMessage(
     console.error('generateAutoReplyMessage', error)
   }
 }
-
-// const
-// const getJSONfor

@@ -181,6 +181,16 @@ const calendarEventSchema = z.object({
   description: z.string().optional()
 })
 
+export const calendarEventSchemaStrict = z
+  .object({
+    title: z.string(),
+    startTime: z.string(),
+    endTime: z.string(),
+    duration: z.number(),
+    description: z.string()
+  })
+  .strict()
+
 const openAiCalendarEventSchema = z.object({
   event: calendarEventSchema,
   response: z.string()

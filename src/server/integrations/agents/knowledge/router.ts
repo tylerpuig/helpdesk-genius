@@ -16,6 +16,7 @@ import { type CalendarCreateEventParams } from '~/server/integrations/agents/kno
 import { getCustomAgents } from '~/server/integrations/agents/langgraph/agents/custom'
 import * as openaiRequests from '~/server/integrations/agents/knowledge/requests'
 import * as knowledgeHelpers from '~/server/integrations/agents/knowledge/helpers'
+import * as insertionUtils from '~/server/db/utils/insertions'
 
 type SchedulingStatus = 'pending' | 'completed' | 'failed'
 
@@ -157,6 +158,7 @@ async function processMessage(
 
     if (knowledgeHelpers.eventHasRequiredFields(event)) {
       console.log('event details confirmed', event)
+      await insertionUtils.createCalendarEvent(event, state.agentParams.workspaceId)
     }
 
     console.log('event partial details', event)

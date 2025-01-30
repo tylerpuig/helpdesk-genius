@@ -91,6 +91,7 @@ export type CalendarEvent = {
   end: Date
   title: string
   color?: VariantProps<typeof monthEventVariants>['variant']
+  description: string
 }
 
 type CalendarProps = {
@@ -188,6 +189,9 @@ const CalendarViewTrigger = forwardRef<
 CalendarViewTrigger.displayName = 'CalendarViewTrigger'
 
 const EventGroup = ({ events, hour }: { events: CalendarEvent[]; hour: Date }) => {
+  const { view } = useCalendar()
+  const isDayOrWeekView = view === 'day' || view === 'week'
+
   return (
     <div className="h-20 border-t last:border-b">
       {events
@@ -199,17 +203,22 @@ const EventGroup = ({ events, hour }: { events: CalendarEvent[]; hour: Date }) =
           return (
             <div
               key={event.id}
-              className={cn('relative', dayEventVariants({ variant: event.color }))}
+              className={cn(
+                'relative hover:cursor-pointer hover:bg-purple-800',
+                dayEventVariants({ variant: event.color })
+              )}
               style={{
                 top: `${startPosition * 100}%`,
                 height: `${hoursDifference * 100}%`
               }}
             >
               <div className="flex flex-col">
-                <span className="text-lg text-slate-300">{event.title}</span>
-                <span className="text-lg font-normal text-slate-300">
-                  {'meeting description here'}
-                </span>
+                <span className="truncate text-lg text-slate-300">{event.title}</span>
+                {!isDayOrWeekView && (
+                  <span className="truncate break-words font-normal text-slate-300">
+                    {event.description}
+                  </span>
+                )}
               </div>
             </div>
           )
