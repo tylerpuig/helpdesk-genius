@@ -1,17 +1,7 @@
-import {
-  AIMessage,
-  BaseMessage,
-  HumanMessage,
-  SystemMessage,
-  ToolMessage
-} from '@langchain/core/messages'
+import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages'
 import { MemorySaver, Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { StateGraph } from '@langchain/langgraph'
 import { type EnabledAgentData } from '~/server/db/utils/queries'
-import {
-  findSimilarMessagesFromAgentKnowledge,
-  getPreviousThreadContext
-} from '~/server/db/utils/queries'
 import { type CalendarCreateEventParams } from '~/server/integrations/agents/knowledge/requests'
 import { getCustomAgents } from '~/server/integrations/agents/langgraph/agents/custom'
 import * as openaiRequests from '~/server/integrations/agents/knowledge/requests'
@@ -154,11 +144,17 @@ async function processMessage(
 
   let aiReply: AIMessage | undefined = undefined
   if (currentAgentId === 'scheduler') {
-    const { event, responseContent } = await openaiRequests.tryGetCalendarEventFromMessage(state)
+    const { event, responseContent, shouldCreateEvent } =
+      await openaiRequests.tryGetCalendarEventFromMessage(state)
+
+    console.log('shouldCreateEvent', shouldCreateEvent)
 
     if (knowledgeHelpers.eventHasRequiredFields(event)) {
       console.log('event details confirmed', event)
-      await insertionUtils.createCalendarEvent(event, state.agentParams.workspaceId)
+      if (state.agentParams.schedulingStatus !== 'completed' && shouldCreateEvent) {
+        await insertionUtils.createCalendarEvent(event, state.agentParams.workspaceId)
+        state.agentParams.schedulingStatus = 'completed'
+      }
     }
 
     console.log('event partial details', event)

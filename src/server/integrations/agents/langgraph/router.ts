@@ -14,7 +14,6 @@ import { ToolNode } from '@langchain/langgraph/prebuilt'
 import { type CalendarCreateEventParams } from '~/server/integrations/agents/langgraph/agents/scheduler'
 import { getMessageContent } from './utils'
 import * as schedulerPrompts from './agents/scheduler'
-import { type DBAgent } from '~/server/db/types'
 import { getCustomAgents } from '~/server/integrations/agents/langgraph/agents/custom'
 import { type EnabledAgentData } from '~/server/db/utils/queries'
 import {

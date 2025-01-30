@@ -70,6 +70,9 @@ export async function getSuggestedAgentsFromMessageContent(
           Example: User does not send a message related to any of the agents.
           Response: ['greeter']
 
+          Example: User was previously discussing a meeting, but they are now asking about a biling issue and their most recent message does not refer to the meeting.
+          Response: ["<agent-id-for-billing>"]
+
           `
         },
         {
@@ -193,7 +196,8 @@ export const calendarEventSchemaStrict = z
 
 const openAiCalendarEventSchema = z.object({
   event: calendarEventSchema,
-  response: z.string()
+  response: z.string(),
+  shouldCreateEvent: z.boolean()
 })
 export type CalendarCreateEventParams = z.infer<typeof calendarEventSchema>
 
@@ -227,7 +231,10 @@ export async function tryGetCalendarEventFromMessage(state: AgentThreadState) {
           description: a description of the meeting. Try to fill this out on your own rather than asking the user for it. If there is no context available for the meeting, ask them what they want to discuss.
           startTime: ISO 8601 string. Ask the user for the date, not the exact ISO format.
           endTime: ISO 8601 string Ask the user for the date, not the exact ISO format.
-          duration: number in minutes. If no duration is provided, assume it is 1 hour.
+          duration: number in minutes. If no duration is provided, assume it is 1 hour. Make sure to always ask the user the exact time of the day they want to schedule the meeting if you cannot find it in the messages.
+
+          Here is the current calendar schedulingStatus: ${state.agentParams.schedulingStatus}
+          if the schedulingStatus is "completed", make sure shouldCreateEvent is returned as false and tell the user you are looking forward to seeing them at the meeting.
 
           Current Date: ${new Date().toISOString()}
 
@@ -243,7 +250,11 @@ export async function tryGetCalendarEventFromMessage(state: AgentThreadState) {
           }
 
           Reponse:
-          I have scheduled the demo for tomorrow at 10am. Let me know if you need anything else!
+          I can schedule the demo for you tomorrow at 10am. What would you like to demo? Please confirm the details:
+          Demo for tomorrow (Jan 30th, 2025) at 10am (60 minutes)
+
+          // return false because the user should confirm the event details
+          shouldCreateEvent: false
 
           Example:
           User asks: "Hey, I would like to schedule a meeting / demo
@@ -251,6 +262,27 @@ export async function tryGetCalendarEventFromMessage(state: AgentThreadState) {
           {}
           Reponse:
           Great! I'll need some more information from you. What would you like to discuss and what time works best for you?
+          shouldCreateEvent: false
+
+          // Previous messages:
+          message: I'll need some more information from you. What would you like to discuss and what time works best for you?
+          from: "agent"
+
+          message: Ok, let's schedule a meeting for tomorrow at 10am so I can learn more about the new plan you are offering.
+          from: "customer"
+          current calendar schedulingStatus: "pending"
+
+           Event:
+          {
+            "title": "Discuss new plan",
+            "description": "Discuss the new plan we are offering",
+            "startTime": "2025-30-01T10:00:00.000Z",
+            "endTime": "2025-30-01T11:00:00.000Z",
+            "duration": 60
+          }
+            Reponse:
+            Awesome, I've scheduled the meeting for tomorrow at 10am. Let me know if you need anything else!
+            shouldCreateEvent: true
     
     `
         },
@@ -264,8 +296,9 @@ export async function tryGetCalendarEventFromMessage(state: AgentThreadState) {
 
     const event = response?.choices?.[0]?.message?.parsed?.event ?? {}
     const responseContent = response?.choices?.[0]?.message?.parsed?.response ?? ''
+    const shouldCreateEvent = response?.choices?.[0]?.message?.parsed?.shouldCreateEvent ?? false
 
-    return { event, responseContent }
+    return { event, responseContent, shouldCreateEvent }
   } catch (err) {
     console.error('tryGetCalendarEventFromMessage', err)
   }

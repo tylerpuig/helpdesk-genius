@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
 import * as schema from '~/server/db/schema'
-import { eq, and, asc, desc } from 'drizzle-orm'
+import { eq, and, asc } from 'drizzle-orm'
 import { type CalendarEvent } from '~/app/_components/calendar/full-calendar'
 
 export const calendarRouter = createTRPCRouter({
