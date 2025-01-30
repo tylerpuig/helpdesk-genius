@@ -39,11 +39,7 @@ type SchedulingStatus = 'pending' | 'completed' | 'failed'
 function paramsReducer(current: AgentParams, next: Partial<AgentParams>): AgentParams {
   return {
     ...current,
-    ...next,
-    scheduling: {
-      ...(current.scheduling || {}),
-      ...(next.scheduling || {})
-    }
+    ...next
   }
 }
 
