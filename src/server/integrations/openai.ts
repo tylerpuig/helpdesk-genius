@@ -228,14 +228,14 @@ export async function suggestAgentsFromMessageContent(
     const response = await openai.beta.chat.completions.parse({
       model: 'gpt-4o-mini',
       messages: [
-        {
-          role: 'system',
-          content: `You are an AI assistant that selects the best agents for a given message. Your task is to suggest the relevant agents based on the message content. You should provide the agent IDs as an array in your response. If there are no relevant agents, return an empty array.
-          
-          Agents:
-          ${agents.map((agent) => `- Title: ${agent.title}; Description: ${agent.description}; ID: ${agent.id}`).join('\n')}
-          `
-        },
+        // {
+        //   role: 'system',
+        //   content: `You are an AI assistant that selects the best agents for a given message. Your task is to suggest the relevant agents based on the message content. You should provide the agent IDs as an array in your response. If there are no relevant agents, return an empty array.
+
+        //   Agents:
+        //   ${agents.map((agent) => `- Title: ${agent.title}; Description: ${agent.description}; ID: ${agent.id}`).join('\n')}
+        //   `
+        // },
         {
           role: 'user',
           content: `Message: ${message}`
@@ -294,3 +294,6 @@ export async function generateAutoReplyMessage(
     console.error('generateAutoReplyMessage', error)
   }
 }
+
+// const
+// const getJSONfor

@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
       }
       const content = getMessageContent(messageReply)
       await dbInsertionUtils.createNewChatMessage(threadId, content, user, 'agent')
+      console.log('currentState', currentState)
       return NextResponse.json({
         response: `Received message: ${message}`,
         timestamp: Date.now(),
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
       const messageContent = getMessageContent(lastMessage)
       await dbInsertionUtils.createNewChatMessage(threadId, messageContent, user, 'agent')
     }
-    // console.log('newState', newState?.messages)
+    console.log('newState', newState)
 
     const response: ChatResponse = {
       response: `Received message: ${message}`,

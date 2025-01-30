@@ -14,15 +14,17 @@ export type CalendarCreateEventParams = {
   description?: string
 }
 
-async function extractDateTimeFromMessage(message: string) {
+async function extractDateTimeFromMessage(messages: string[]) {
   const response = await model.invoke([
-    new SystemMessage(`Extract meeting time information from the message.
+    new SystemMessage(`Extract meeting time information from the messages.
       Return JSON: {
         "startTime": "ISO string",
         "endTime": "ISO string",
         "duration": "number in minutes"
+        "title": "string"
+        "description": "string"
       }`),
-    new HumanMessage(message)
+    new HumanMessage(messages.map((message) => message).join('\n'))
   ])
 
   try {
@@ -38,15 +40,19 @@ async function extractDateTimeFromMessage(message: string) {
 export async function promptForDateTime(
   state: AgentThreadState
 ): Promise<{ messages: BaseMessage[]; agentParams: AgentParams }> {
-  const lastMessage = state.messages[state.messages.length - 1]
-  if (!lastMessage) {
-    throw new Error('No messages in state')
-  }
+  // const lastMessage = state.messages[state.messages.length - 1]
+  // if (!lastMessage) {
+  //   throw new Error('No messages in state')
+  // }
 
-  const content = getMessageContent(lastMessage)
+  const allMesages = state.messages.map((message) => {
+    const content = getMessageContent(message)
+    return content
+  })
+  // const content = getMessageContent(lastMessage)
 
   // First try to extract datetime from message
-  const extracted = await extractDateTimeFromMessage(content)
+  const extracted = await extractDateTimeFromMessage(allMesages)
 
   if (extracted?.startTime && extracted?.endTime) {
     // If we successfully extracted time, update params but don't ask question
@@ -69,17 +75,17 @@ export async function promptForDateTime(
       Generate a natural follow-up question asking for the meeting time.
       Suggest they provide both start and end time or duration.
       Example: "What time would you like the meeting? You can specify start/end times or how long you would like to meeting to last."`),
-    new HumanMessage(content)
+    new HumanMessage(allMesages.join('\n'))
   ])
 
   console.log('promptForDateTime response:', response)
 
-  const question = new AIMessage({
-    content: typeof response.content === 'string' ? response.content : ''
-  })
+  // const question = new AIMessage({
+  //   content: typeof response.content === 'string' ? response.content : ''
+  // })
 
   return {
-    messages: [...state.messages, question],
+    messages: [...state.messages, response],
     agentParams: state.agentParams
   }
 }

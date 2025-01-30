@@ -24,7 +24,7 @@ export async function handleAgentAutoReply(
 
     const suggestedAgentIds = await openaiUtils.suggestAgentsFromMessageContent(
       messageContent,
-      agents
+      agents as any
     )
 
     if (!suggestedAgentIds.length) {
