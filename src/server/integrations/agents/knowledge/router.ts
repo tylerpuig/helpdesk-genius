@@ -135,9 +135,30 @@ async function processMessage(
   state: typeof StateAnnotation.State
 ): Promise<Partial<AgentThreadState>> {
   const { selectedAgentIdIndex, pendingAgentIds } = state.agentParams
-  console.log('selectedAgentIdIndex', selectedAgentIdIndex, 'pendingAgentIds', pendingAgentIds)
+  // console.log('selectedAgentIdIndex', selectedAgentIdIndex, 'pendingAgentIds', pendingAgentIds)
+
   const currentAgentId = pendingAgentIds[selectedAgentIdIndex]
-  console.log('currentAgentId', currentAgentId)
+  // console.log('currentAgentId', currentAgentId)
+
+  for (const agentId of pendingAgentIds) {
+    if (agentId == 'scheduler') {
+      console.log('scheduler agent selected')
+      continue
+    }
+
+    if (agentId == 'greeter') {
+      console.log('greeter agent selected')
+      continue
+    }
+
+    for (const customAgent of state.agentParams.agents) {
+      if (agentId === customAgent.id) {
+        console.log(`agent ${customAgent.title} selected`)
+        break
+      }
+    }
+  }
+
   if (!currentAgentId) {
     return state
   }
@@ -155,9 +176,9 @@ async function processMessage(
         await insertionUtils.createCalendarEvent(event, state.agentParams.workspaceId)
         state.agentParams.schedulingStatus = 'completed'
       }
+    } else {
+      console.log('event partial details', event)
     }
-
-    console.log('event partial details', event)
 
     aiReply = new AIMessage({
       content: responseContent

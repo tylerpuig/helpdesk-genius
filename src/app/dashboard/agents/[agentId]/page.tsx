@@ -1,6 +1,10 @@
 import AgentDetails from '~/app/_components/agents/agent-details'
 
-export default async function Page({ params }: { params: { agentId: string } }) {
+interface PageProps {
+  params: Promise<{ agentId: string }>
+}
+
+export default async function Page({ params }: PageProps) {
   const resolvedParams = await params
   return <AgentDetails params={resolvedParams} />
 }

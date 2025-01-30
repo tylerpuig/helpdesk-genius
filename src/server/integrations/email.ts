@@ -10,72 +10,74 @@ export async function generateEmailMessageReply(
   threadId: string
 ): Promise<string> {
   try {
-    const agents = await dbQueryUtils.getEnabledAgentsForWorkspace(workspaceId)
-    if (!agents?.length) {
-      throw new Error('No agents found')
-    }
+    return ''
 
-    const latestMessage = await db.query.messagesTable.findFirst({
-      where: eq(schema.messagesTable.threadId, threadId),
-      orderBy: desc(schema.messagesTable.createdAt)
-    })
+    // const agents = await dbQueryUtils.getEnabledAgentsForWorkspace(workspaceId)
+    // if (!agents?.length) {
+    //   throw new Error('No agents found')
+    // }
 
-    if (!latestMessage) {
-      throw new Error('No latest message found')
-    }
+    // const latestMessage = await db.query.messagesTable.findFirst({
+    //   where: eq(schema.messagesTable.threadId, threadId),
+    //   orderBy: desc(schema.messagesTable.createdAt)
+    // })
 
-    const messageData = await db.query.messagesTable.findFirst({
-      where: and(
-        eq(schema.messagesTable.id, latestMessage.id),
-        eq(schema.messagesTable.threadId, threadId)
-      )
-    })
+    // if (!latestMessage) {
+    //   throw new Error('No latest message found')
+    // }
 
-    if (!messageData) {
-      throw new Error('Message not found')
-    }
+    // const messageData = await db.query.messagesTable.findFirst({
+    //   where: and(
+    //     eq(schema.messagesTable.id, latestMessage.id),
+    //     eq(schema.messagesTable.threadId, threadId)
+    //   )
+    // })
 
-    const suggestedAgentId = await openaiUtils.suggestAgentsFromMessageContent(
-      messageData.content,
-      agents
-    )
+    // if (!messageData) {
+    //   throw new Error('Message not found')
+    // }
 
-    if (!suggestedAgentId) {
-      throw new Error('No agent found')
-    }
+    // const suggestedAgentId = await openaiUtils.suggestAgentsFromMessageContent(
+    //   messageData.content,
+    //   agents
+    // )
 
-    const messageEmbedding = await openaiUtils.generateEmbeddingFromText(messageData.content)
-    if (!messageEmbedding) {
-      throw new Error('Failed to generate embedding')
-    }
+    // if (!suggestedAgentId) {
+    //   throw new Error('No agent found')
+    // }
 
-    const similarMessages = await dbQueryUtils.findSimilarMessagesFromAgentKnowledge(
-      suggestedAgentId,
-      messageEmbedding
-    )
+    // const messageEmbedding = await openaiUtils.generateEmbeddingFromText(messageData.content)
+    // if (!messageEmbedding) {
+    //   throw new Error('Failed to generate embedding')
+    // }
 
-    // console.log(similarMessages)
+    // const similarMessages = await dbQueryUtils.findSimilarMessagesFromAgentKnowledge(
+    //   suggestedAgentId,
+    //   messageEmbedding
+    // )
 
-    if (!similarMessages?.length) {
-      throw new Error('No similar messages found')
-    }
+    // // console.log(similarMessages)
 
-    // get last 3 messages from thread
-    const previousThreadMessages = await dbQueryUtils.getPreviousThreadContext(threadId, 3)
-    // console.log('previousThreadMessages', previousThreadMessages)
+    // if (!similarMessages?.length) {
+    //   throw new Error('No similar messages found')
+    // }
 
-    const replyInfo = await openaiUtils.generateAutoReplyMessage(
-      messageData.content,
-      similarMessages.map((message) => message.content).join('\n\n'),
-      previousThreadMessages ?? []
-    )
-    // console.log('autoReply', replyInfo)
+    // // get last 3 messages from thread
+    // const previousThreadMessages = await dbQueryUtils.getPreviousThreadContext(threadId, 3)
+    // // console.log('previousThreadMessages', previousThreadMessages)
 
-    if (!replyInfo?.autoReply) {
-      throw new Error('No auto reply found')
-    }
+    // const replyInfo = await openaiUtils.generateAutoReplyMessage(
+    //   messageData.content,
+    //   similarMessages.map((message) => message.content).join('\n\n'),
+    //   previousThreadMessages ?? []
+    // )
+    // // console.log('autoReply', replyInfo)
 
-    return replyInfo.autoReply
+    // if (!replyInfo?.autoReply) {
+    //   throw new Error('No auto reply found')
+    // }
+
+    // return replyInfo.autoReply
   } catch (error) {
     console.error('handleAgentAutoReply', error)
   }
@@ -94,10 +96,11 @@ export async function addEmailToAgentKnowledgeBase(
       throw new Error('No agents found')
     }
 
-    const suggestedAgentId = await openaiUtils.suggestAgentsFromMessageContent(
-      messageContent,
-      agents
-    )
+    // const suggestedAgentId = await openaiUtils.suggestAgentsFromMessageContent(
+    //   messageContent,
+    //   agents
+    // )
+    const suggestedAgentId = ''
 
     console.log('suggestedAgentId', suggestedAgentId)
 

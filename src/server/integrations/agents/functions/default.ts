@@ -50,57 +50,57 @@ export const DEFAULT_AGENTS: DefaultAgent[] = [
   // Add more default agents...
 ]
 
-export async function createWorkspaceWithDefaultAgents(workspaceData: WorkspaceCreateInput) {
-  const workspace = await db.transaction(async (tx) => {
-    // Insert default agents
-    const agentInserts = DEFAULT_AGENTS.map((agent) => ({
-      workspaceId: workspace[0].id,
-      title: agent.title,
-      description: agent.description,
-      isCustom: false,
-      enabled: true,
-      allowAutoReply: true
-    }))
+// export async function createWorkspaceWithDefaultAgents(workspaceData: WorkspaceCreateInput) {
+//   const workspace = await db.transaction(async (tx) => {
+//     // Insert default agents
+//     const agentInserts = DEFAULT_AGENTS.map((agent) => ({
+//       workspaceId: workspace[0].id,
+//       title: agent.title,
+//       description: agent.description,
+//       isCustom: false,
+//       enabled: true,
+//       allowAutoReply: true
+//     }))
 
-    const agents = await tx.insert(agentsTable).values(agentInserts).returning()
+//     const agents = await tx.insert(agentsTable).values(agentInserts).returning()
 
-    // Insert functions and embeddings for each agent
-    for (let i = 0; i < agents.length; i++) {
-      const agent = agents[i]
-      const defaultAgent = DEFAULT_AGENTS[i]
+//     // Insert functions and embeddings for each agent
+//     for (let i = 0; i < agents.length; i++) {
+//       const agent = agents[i]
+//       const defaultAgent = DEFAULT_AGENTS[i]
 
-      const functionInserts = defaultAgent.functions.map((fn) => ({
-        agentId: agent.id,
-        name: fn.name,
-        description: fn.description,
-        parameters: fn.parameters,
-        required: fn.required
-      }))
+//       const functionInserts = defaultAgent.functions.map((fn) => ({
+//         agentId: agent.id,
+//         name: fn.name,
+//         description: fn.description,
+//         parameters: fn.parameters,
+//         required: fn.required
+//       }))
 
-      const functions = await tx.insert(agentFunctionsTable).values(functionInserts).returning()
+//       const functions = await tx.insert(agentFunctionsTable).values(functionInserts).returning()
 
-      // Insert embeddings
-      for (let j = 0; j < functions.length; j++) {
-        const fn = functions[j]
-        const defaultFn = defaultAgent.functions[j]
+//       // Insert embeddings
+//       for (let j = 0; j < functions.length; j++) {
+//         const fn = functions[j]
+//         const defaultFn = defaultAgent.functions[j]
 
-        const embeddings = await Promise.all(
-          defaultFn.embeddings.map(async (e) => {
-            const embedding = await generateEmbedding(e.context) // Your embedding generation function
-            return {
-              functionId: fn.id,
-              embedding,
-              context: e.context
-            }
-          })
-        )
+//         const embeddings = await Promise.all(
+//           defaultFn.embeddings.map(async (e) => {
+//             const embedding = await generateEmbedding(e.context) // Your embedding generation function
+//             return {
+//               functionId: fn.id,
+//               embedding,
+//               context: e.context
+//             }
+//           })
+//         )
 
-        await tx.insert(functionEmbeddingsTable).values(embeddings)
-      }
-    }
+//         await tx.insert(functionEmbeddingsTable).values(embeddings)
+//       }
+//     }
 
-    return workspace[0]
-  })
+//     return workspace[0]
+//   })
 
-  return workspace
-}
+//   return workspace
+// }

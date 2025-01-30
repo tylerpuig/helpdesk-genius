@@ -1,4 +1,4 @@
-import { openai } from '~/server/integrations/openai'
+// import { openai } from '~/server/integrations/openai'
 import { z } from 'zod'
 import { zodResponseFormat } from 'openai/helpers/zod'
 import { type EnabledAgentData } from '~/server/db/utils/queries'
@@ -8,6 +8,10 @@ import {
 } from '~/server/db/utils/queries'
 import { type AgentThreadState } from '~/server/integrations/agents/knowledge/router'
 import { generateEmbeddingFromText } from '~/server/integrations/openai'
+import { wrapOpenAI } from 'langsmith/wrappers/openai'
+import OpenAI from 'openai'
+
+export const wrappedOpenAI = wrapOpenAI(new OpenAI({ apiKey: process.env.OPENAI_API_KEY }))
 
 const suggestAgentOuputSchema = z.object({
   agentIds: z.array(z.string())
@@ -35,7 +39,7 @@ export async function getSuggestedAgentsFromMessageContent(
     }
     // const latestMessageContent = latestMessage?.content ?? ''
     console.log('latestMessage: ', latestMessage)
-    const response = await openai.beta.chat.completions.parse({
+    const response = await wrappedOpenAI.beta.chat.completions.parse({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -109,7 +113,7 @@ export async function respondToUserMessage(
 
     const previousThreadMessages = await getPreviousThreadContext(state.agentParams.threadId, 3)
 
-    const response = await openai.beta.chat.completions.parse({
+    const response = await wrappedOpenAI.beta.chat.completions.parse({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -149,7 +153,7 @@ export async function generateGreetingMessage(state: AgentThreadState): Promise<
 
     const userMessage = state.messages.at(-1)?.content ?? ''
 
-    const response = await openai.beta.chat.completions.parse({
+    const response = await wrappedOpenAI.beta.chat.completions.parse({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -216,7 +220,7 @@ export async function tryGetCalendarEventFromMessage(state: AgentThreadState) {
       })
       .join('\n')
 
-    const response = await openai.beta.chat.completions.parse({
+    const response = await wrappedOpenAI.beta.chat.completions.parse({
       model: 'gpt-4o-mini',
       messages: [
         {
