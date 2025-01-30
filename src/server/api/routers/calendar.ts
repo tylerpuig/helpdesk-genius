@@ -35,5 +35,49 @@ export const calendarRouter = createTRPCRouter({
       }))
 
       return formattedEvents
+    }),
+  getSingleEvent: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        workspaceId: z.string()
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      const [event] = await ctx.db
+        .select({
+          id: schema.calendarEventTable.id,
+          title: schema.calendarEventTable.title,
+          description: schema.calendarEventTable.description,
+          start: schema.calendarEventTable.start,
+          end: schema.calendarEventTable.end,
+          color: schema.calendarEventTable.color
+        })
+        .from(schema.calendarEventTable)
+        .where(
+          and(
+            eq(schema.calendarEventTable.id, input.eventId),
+            eq(schema.calendarEventTable.workspaceId, input.workspaceId)
+          )
+        )
+
+      return event
+    }),
+  deleteEvent: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string(),
+        workspaceId: z.string()
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db
+        .delete(schema.calendarEventTable)
+        .where(
+          and(
+            eq(schema.calendarEventTable.id, input.eventId),
+            eq(schema.calendarEventTable.workspaceId, input.workspaceId)
+          )
+        )
     })
 })
