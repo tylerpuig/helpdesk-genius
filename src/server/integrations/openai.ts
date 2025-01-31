@@ -222,20 +222,20 @@ const suggestAgentOuputSchema = z.object({
 
 export async function suggestAgentsFromMessageContent(
   message: string,
-  agents: NonNullable<EnabledAgentData>
+  agents: NonNullable<EnabledAgentData>[]
 ): Promise<string[]> {
   try {
     const response = await openai.beta.chat.completions.parse({
       model: 'gpt-4o-mini',
       messages: [
-        // {
-        //   role: 'system',
-        //   content: `You are an AI assistant that selects the best agents for a given message. Your task is to suggest the relevant agents based on the message content. You should provide the agent IDs as an array in your response. If there are no relevant agents, return an empty array.
+        {
+          role: 'system',
+          content: `You are an AI assistant that selects the best agents for a given message. Your task is to suggest the relevant agents based on the message content. You should provide the agent IDs as an array in your response. If there are no relevant agents, return an empty array.
 
-        //   Agents:
-        //   ${agents.map((agent) => `- Title: ${agent.title}; Description: ${agent.description}; ID: ${agent.id}`).join('\n')}
-        //   `
-        // },
+          Agents:
+          ${agents.map((agent) => `- Title: ${agent.title}; Description: ${agent.description}; ID: ${agent.id}`).join('\n')}
+          `
+        },
         {
           role: 'user',
           content: `Message: ${message}`
