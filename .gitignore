@@ -49,3 +49,4 @@ yarn-error.log*
 # /scripts
 /scripts/knowledge
 /scripts/evals/selectedAgents/data.json
+/scripts/evals/parseEventTime/data.json

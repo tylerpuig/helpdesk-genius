@@ -13,7 +13,13 @@ if (!apiUrl || !workspaceId) {
 
 type TestData = {
   input: string
-  output: string[]
+  output: {
+    title: string
+    description: string
+    startTime: string | null
+    endTime: string | null
+    duration: number
+  }
 }
 
 let score = 0
@@ -52,8 +58,8 @@ async function run() {
       const data = await response.json()
       console.log(data)
 
-      console.log('expected output: ', output)
-      const isCorrect = await confirmContinue<string[]>(rl, output)
+      //   console.log('expected output: ', output)
+      const isCorrect = await confirmContinue<TestData['output']>(rl, output)
       if (isCorrect) score++
     }
 
