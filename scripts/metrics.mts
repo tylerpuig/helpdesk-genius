@@ -367,7 +367,7 @@ async function run() {
   // })
 
   const dailyMetrics = await getDailyUserMetrics({
-    senderEmail: 'Jeremy41@yahoo.com',
+    senderEmail: '',
     workspaceId: WORKSPACE_ID,
     days: 7
   })

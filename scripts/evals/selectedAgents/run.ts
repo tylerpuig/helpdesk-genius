@@ -50,7 +50,7 @@ async function run() {
       })
 
       const data = await response.json()
-      console.log(data)
+      // console.log(data)
 
       console.log('expected output: ', output)
       const isCorrect = await confirmContinue<string[]>(rl, output)

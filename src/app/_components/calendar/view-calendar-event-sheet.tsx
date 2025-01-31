@@ -82,7 +82,7 @@ export default function ViewCalendarEventSheet() {
               </div>
               <div className="flex items-center space-x-2">
                 <MapPinIcon className="h-4 w-4 text-muted-foreground" />
-                <span>{'Location Here'}</span>
+                <span>{'Zoom'}</span>
               </div>
             </div>
             <div>

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import * as dbInsertionUtils from '~/server/db/utils/insertions'
 import * as dbQueryUtils from '~/server/db/utils/queries'
 import { chatEE, type EventEmitterChatMessage } from '~/server/api/routers/chat'
-import { getMessageContent } from '~/server/integrations/agents/langgraph/utils'
 import {
   handleAgentAutoReply,
   type AgentThreadStateCache

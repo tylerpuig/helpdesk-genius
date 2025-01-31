@@ -1,14 +1,11 @@
 import * as schema from '~/server/db/schema'
 import { db } from '~/server/db'
-import { desc, eq, sql, and } from 'drizzle-orm'
+import { eq, sql, and } from 'drizzle-orm'
 import { type TRPCContext } from '~/server/api/trpc'
 import * as openaiUtils from '~/server/integrations/openai'
 import bcrypt from 'bcrypt'
 import * as emailGenerationUtils from '~/server/integrations/email'
-import {
-  type CalendarCreateEventParams,
-  calendarEventSchemaStrict
-} from '~/server/integrations/agents/knowledge/requests'
+import { type CalendarCreateEventParams } from '~/server/integrations/agents/knowledge/requests'
 import { type BaseMessage } from '@langchain/core/messages'
 import { type AdditionalMessageMetadata } from '~/server/integrations/agents/knowledge/router'
 
