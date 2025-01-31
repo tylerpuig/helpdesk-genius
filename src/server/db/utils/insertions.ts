@@ -9,7 +9,8 @@ import {
   type CalendarCreateEventParams,
   calendarEventSchemaStrict
 } from '~/server/integrations/agents/knowledge/requests'
-import { eventHasRequiredFields } from '~/server/integrations/agents/knowledge/helpers'
+import { type BaseMessage } from '@langchain/core/messages'
+import { type AdditionalMessageMetadata } from '~/server/integrations/agents/knowledge/router'
 
 export async function createNewEmailMessageReply(
   threadId: string,
@@ -307,6 +308,37 @@ export async function createNewChatMessage(
     await updateIsThreadRead(threadId, true)
 
     return message
+  } catch (error) {
+    console.error('createNewChatMessage', error)
+  }
+}
+
+export async function createNewAIChatMessage(threadId: string, message: BaseMessage) {
+  try {
+    const messageContent = Array.isArray(message.content)
+      ? message.content.join('\n')
+      : message.content
+
+    const metadata = message.additional_kwargs?.metadata as AdditionalMessageMetadata
+    console.log('kwargs: ', message.additional_kwargs)
+
+    const [newMessage] = await db
+      .insert(schema.messagesTable)
+      .values({
+        threadId,
+        content: messageContent,
+        role: 'agent',
+        senderEmail: metadata?.agentTitle
+          ? metadata?.agentTitle + '@your-workspace.com'
+          : 'agent@your-workspace.com',
+        senderName: metadata?.agentTitle ?? 'Agent'
+      })
+      .returning()
+
+    // mark thre thread as unread
+    await updateIsThreadRead(threadId, true)
+
+    return newMessage
   } catch (error) {
     console.error('createNewChatMessage', error)
   }

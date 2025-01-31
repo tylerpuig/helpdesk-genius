@@ -24,6 +24,11 @@ export type AgentParams = {
   threadId: string
 }
 
+export type AdditionalMessageMetadata = {
+  agentId: string
+  agentTitle: string
+}
+
 function agentParamsReducer(current: AgentParams, next: Partial<AgentParams>): AgentParams {
   return {
     ...current,
@@ -143,14 +148,18 @@ async function processMessage(
 
   const currentAgentId = pendingAgentIds[selectedAgentIdIndex]
 
+  let currentAgentTitle = ''
   if (currentAgentId == 'scheduler') {
     state.agentParams.selectedAgentTitles.push('Scheduler')
+    currentAgentTitle = 'Schduler'
   } else if (currentAgentId == 'greeter') {
     state.agentParams.selectedAgentTitles.push('Greeter')
+    currentAgentTitle = 'Greeter'
   } else {
     const agentTitle = state.agentParams.agents.find((agent) => agent.id === currentAgentId)?.title
     if (agentTitle) {
       state.agentParams.selectedAgentTitles.push(agentTitle)
+      currentAgentTitle = agentTitle
     }
   }
 
@@ -161,6 +170,13 @@ async function processMessage(
   }
 
   let aiReply: AIMessage | undefined = undefined
+  const metadadata: AdditionalMessageMetadata = {
+    agentId: currentAgentId,
+    agentTitle: currentAgentTitle
+  }
+  const additionaKwArgs: AIMessage['additional_kwargs'] = {
+    metadata: metadadata
+  }
   if (currentAgentId === 'scheduler') {
     const { event, responseContent, shouldCreateEvent } =
       await openaiRequests.tryGetCalendarEventFromMessage(state)
@@ -179,19 +195,22 @@ async function processMessage(
     }
 
     aiReply = new AIMessage({
-      content: responseContent
+      content: responseContent,
+      additional_kwargs: additionaKwArgs
     })
   } else if (currentAgentId === 'greeter') {
     // Generate a greeting message
     const messageReply = await openaiRequests.generateGreetingMessage(state)
     aiReply = new AIMessage({
-      content: messageReply
+      content: messageReply,
+      additional_kwargs: additionaKwArgs
     })
   } else {
     // Generate a response for the current agent
     const messageReply = await openaiRequests.respondToUserMessage(state, currentAgentId)
     aiReply = new AIMessage({
-      content: messageReply
+      content: messageReply,
+      additional_kwargs: additionaKwArgs
     })
   }
 

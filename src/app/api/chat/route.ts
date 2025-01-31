@@ -69,8 +69,11 @@ export async function POST(request: NextRequest) {
       if (!messageReply) {
         return NextResponse.json({ error: 'Failed to get message reply' }, { status: 500 })
       }
-      const content = getMessageContent(messageReply)
-      await dbInsertionUtils.createNewChatMessage(threadId, content, user, 'agent')
+      // const content = getMessageContent(messageReply)
+      const lastMessage = firstState.messages?.at(-1)
+      if (lastMessage) {
+        await dbInsertionUtils.createNewAIChatMessage(threadId, lastMessage)
+      }
       // console.log('currentState', currentState)
       return NextResponse.json({
         response: `Received message: ${message}`,
@@ -78,24 +81,22 @@ export async function POST(request: NextRequest) {
         threadId
       })
     }
+    // insert user's message
     await dbInsertionUtils.createNewChatMessage(threadId, message, user, 'customer')
 
     handleAgentAutoReply(workspaceId, threadId, message, currentState).then(async (newState) => {
       if (newState) {
         langChainCache.set(chatId, newState)
-        // console.log('newState', newState)
       }
 
       const lastMessage = newState?.messages?.at(-1)
-      // console.log('lastMessage', lastMessage)
 
-      if (lastMessage?.content) {
-        const messageContent = getMessageContent(lastMessage)
-        await dbInsertionUtils.createNewChatMessage(threadId, messageContent, user, 'agent')
+      if (lastMessage) {
+        console.log(lastMessage)
+        // insert agent's message
+        await dbInsertionUtils.createNewAIChatMessage(threadId, lastMessage)
       }
     })
-
-    // console.log('newState', newState)
 
     const response: ChatResponse = {
       response: `Received message: ${message}`,
@@ -108,8 +109,6 @@ export async function POST(request: NextRequest) {
     }
     chatEE.emit('newMessage', subMessage)
 
-    // auto reply with agent if applicable
-    // void chatUtils.handleAgentAutoReply(workspaceId, threadId, message)
     return NextResponse.json(response)
   } catch (error) {
     console.error('Error processing chat message:', error)
