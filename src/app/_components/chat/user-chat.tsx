@@ -11,7 +11,8 @@ import {
   PlusCircle,
   ChevronRight,
   ChevronLeft,
-  User
+  User,
+  Bot
 } from 'lucide-react'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { MessageInput } from '~/components/ui/message-input'
@@ -225,12 +226,17 @@ export default function ChatInterface() {
                     key={message.id}
                     className={`flex items-end gap-2 ${message.role !== 'customer' ? 'flex-row-reverse' : ''}`}
                   >
-                    {message.role !== 'customer' && (
-                      <Avatar className="h-8 w-8 border-2 border-orange-500">
-                        <AvatarImage src={session?.user?.image ?? ''} />
-                        <AvatarFallback>{''}</AvatarFallback>
-                      </Avatar>
-                    )}
+                    {message.role !== 'customer' &&
+                      !message.senderEmail.includes('your-workspace.com') && (
+                        <Avatar className="h-8 w-8 border-2 border-orange-500">
+                          <AvatarImage src={session?.user?.image ?? ''} />
+                          <AvatarFallback>{''}</AvatarFallback>
+                        </Avatar>
+                      )}
+                    {message.role !== 'customer' &&
+                      message.senderEmail.includes('your-workspace.com') && (
+                        <Bot className="h-8 w-8" />
+                      )}
                     <div
                       className={`max-w-md rounded-2xl px-4 py-2 ${
                         message.role !== 'customer'
