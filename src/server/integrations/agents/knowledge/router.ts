@@ -166,6 +166,7 @@ async function processMessage(
       await openaiRequests.tryGetCalendarEventFromMessage(state)
 
     // console.log('shouldCreateEvent', shouldCreateEvent)
+    state.agentParams.scheduling = event
 
     if (knowledgeHelpers.eventHasRequiredFields(event)) {
       // console.log('event details confirmed', event)

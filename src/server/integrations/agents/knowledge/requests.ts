@@ -1,4 +1,3 @@
-// import { openai } from '~/server/integrations/openai'
 import { z } from 'zod'
 import { zodResponseFormat } from 'openai/helpers/zod'
 import { type EnabledAgentData } from '~/server/db/utils/queries'
