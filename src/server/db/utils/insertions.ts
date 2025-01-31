@@ -288,6 +288,10 @@ export async function createNewChatMessage(
   role: 'customer' | 'agent'
 ) {
   try {
+    if (role === 'agent') {
+      userInfo.name = 'Agent'
+      userInfo.email = 'agent@your-workspace.com'
+    }
     const [message] = await db
       .insert(schema.messagesTable)
       .values({

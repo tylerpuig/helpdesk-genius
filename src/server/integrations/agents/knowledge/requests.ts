@@ -22,8 +22,8 @@ export async function getSuggestedAgentsFromMessageContent(
   agents: EnabledAgentData[],
   state: AgentThreadState
 ): Promise<string[]> {
-  console.log('previousMessages', previousMessages)
-  console.log('agents', agents)
+  // console.log('previousMessages', previousMessages)
+  // console.log('agents', agents)
 
   try {
     let latestMessage = ''

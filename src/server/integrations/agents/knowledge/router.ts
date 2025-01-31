@@ -19,6 +19,8 @@ export type AgentParams = {
   agentIds: string[]
   pendingAgentIds: string[]
   selectedAgentIdIndex: number
+  // mainly just for eval purposes
+  selectedAgentTitles: string[]
   threadId: string
 }
 
@@ -52,6 +54,7 @@ const StateAnnotation = Annotation.Root({
       threadId: '',
       pendingAgentIds: [],
       selectedAgentIdIndex: 0,
+      selectedAgentTitles: [],
       scheduling: {
         startTime: '',
         endTime: '',
@@ -120,13 +123,14 @@ function decideNextStep(state: typeof StateAnnotation.State) {
   const { selectedAgentIdIndex, pendingAgentIds } = state.agentParams
 
   // If we have more agents to process
-  if (selectedAgentIdIndex < pendingAgentIds.length - 1) {
+  if (selectedAgentIdIndex < pendingAgentIds.length) {
     return 'agent' // Continue to next agent
   }
 
   // Clear the pending agents when we're done
   state.agentParams.pendingAgentIds = []
   state.agentParams.selectedAgentIdIndex = 0
+  state.agentParams.selectedAgentTitles = []
 
   return 'end' // No more agents to process
 }
@@ -138,26 +142,19 @@ async function processMessage(
   // console.log('selectedAgentIdIndex', selectedAgentIdIndex, 'pendingAgentIds', pendingAgentIds)
 
   const currentAgentId = pendingAgentIds[selectedAgentIdIndex]
-  // console.log('currentAgentId', currentAgentId)
 
-  for (const agentId of pendingAgentIds) {
-    if (agentId == 'scheduler') {
-      console.log('scheduler agent selected')
-      continue
-    }
-
-    if (agentId == 'greeter') {
-      console.log('greeter agent selected')
-      continue
-    }
-
-    for (const customAgent of state.agentParams.agents) {
-      if (agentId === customAgent.id) {
-        console.log(`agent ${customAgent.title} selected`)
-        break
-      }
+  if (currentAgentId == 'scheduler') {
+    state.agentParams.selectedAgentTitles.push('Scheduler')
+  } else if (currentAgentId == 'greeter') {
+    state.agentParams.selectedAgentTitles.push('Greeter')
+  } else {
+    const agentTitle = state.agentParams.agents.find((agent) => agent.id === currentAgentId)?.title
+    if (agentTitle) {
+      state.agentParams.selectedAgentTitles.push(agentTitle)
     }
   }
+
+  console.log('state.agentParams.selectedAgentTitles', state.agentParams.selectedAgentTitles)
 
   if (!currentAgentId) {
     return state
@@ -168,10 +165,10 @@ async function processMessage(
     const { event, responseContent, shouldCreateEvent } =
       await openaiRequests.tryGetCalendarEventFromMessage(state)
 
-    console.log('shouldCreateEvent', shouldCreateEvent)
+    // console.log('shouldCreateEvent', shouldCreateEvent)
 
     if (knowledgeHelpers.eventHasRequiredFields(event)) {
-      console.log('event details confirmed', event)
+      // console.log('event details confirmed', event)
       if (state.agentParams.schedulingStatus !== 'completed' && shouldCreateEvent) {
         await insertionUtils.createCalendarEvent(event, state.agentParams.workspaceId)
         state.agentParams.schedulingStatus = 'completed'
@@ -255,7 +252,8 @@ export async function handleAgentAutoReply(
           agentIds: previousState?.agentParams?.agentIds ?? [],
           schedulingStatus: previousState?.agentParams?.schedulingStatus ?? 'pending',
           pendingAgentIds: previousState?.agentParams?.pendingAgentIds ?? [],
-          selectedAgentIdIndex: previousState?.agentParams?.selectedAgentIdIndex ?? 0
+          selectedAgentIdIndex: previousState?.agentParams?.selectedAgentIdIndex ?? 0,
+          selectedAgentTitles: previousState?.agentParams?.selectedAgentTitles ?? []
         }
       },
       {
